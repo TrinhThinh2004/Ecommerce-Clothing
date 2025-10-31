@@ -4,23 +4,126 @@ import jwt, { SignOptions } from 'jsonwebtoken';
 import User from '../models/User';
 import { JWTPayload } from '../middleware/auth.middleware';
 
-// Tạo JWT token
-const generateToken = (user: User): string => {
-  const payload: JWTPayload = {
-    user_id: user.user_id,
-    username: user.username,
-    email: user.email,
-    role: user.role,
-  };
+const createJWTPayload = (user: User): JWTPayload => ({
+  user_id: user.user_id,
+  username: user.username,
+  email: user.email,
+  role: user.role,
+});
 
-  const secret = process.env.JWT_SECRET;
+const generateAccessToken = (user: User): string => {
+  const payload = createJWTPayload(user);
+  const secret = process.env.JWT_SECRET; 
   if (!secret) {
     throw new Error('Thiếu cấu hình JWT_SECRET trong biến môi trường');
   }
 
-  return jwt.sign(payload, secret, {
-    expiresIn: '7d',
-  });
+  const expiresIn = process.env.JWT_ACCESS_EXPIRES || '15m';
+  return jwt.sign(payload, secret as jwt.Secret, { expiresIn } as SignOptions);
+};
+
+const generateRefreshToken = (user: User): string => {
+  const payload = createJWTPayload(user);
+  const secret = process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('Thiếu cấu hình JWT_REFRESH_SECRET hoặc JWT_SECRET trong biến môi trường');
+  }
+
+  const expiresIn = process.env.JWT_REFRESH_EXPIRES || '7d';
+  return jwt.sign(payload, secret as jwt.Secret, { expiresIn } as SignOptions);
+};
+
+export const refreshAccessToken = async (req: Request, res: Response) => {
+  try {
+    // read refresh token from HttpOnly cookie
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    const refreshToken = req.cookies?.refreshToken as string | undefined;
+    if (!refreshToken) {
+      return res.status(401).json({ message: 'Refresh token required' });
+    }
+
+    const secret = process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET;
+    if (!secret) {
+      throw new Error('Thiếu cấu hình JWT_REFRESH_SECRET hoặc JWT_SECRET trong biến môi trường');
+    }
+
+    // verify signature and decode to get user id
+    const decoded = jwt.verify(refreshToken, secret as jwt.Secret) as JWTPayload;
+
+    // find user and validate stored hash
+    const user = await User.findByPk(decoded.user_id);
+    if (!user) {
+      return res.status(401).json({ message: 'User not found' });
+    }
+
+    // validate stored refresh token (plaintext stored as requested)
+    // @ts-ignore - refresh_token field exists on model
+    if (!user.refresh_token || user.refresh_token !== refreshToken) {
+      return res.status(403).json({ message: 'Refresh token revoked or not found' });
+    }
+
+    // rotate: replace stored refresh token with a new one
+    const accessToken = generateAccessToken(user);
+    const newRefreshToken = generateRefreshToken(user);
+    // persist new refresh token on user
+    // @ts-ignore
+    await user.update({ refresh_token: newRefreshToken });
+
+    // set HttpOnly cookie
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax' as const,
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    };
+    res.cookie('refreshToken', newRefreshToken, cookieOptions);
+
+    return res.json({ accessToken });
+  } catch (error) {
+    return res.status(403).json({ message: 'Invalid or expired refresh token' });
+  }
+};
+
+// Logout: revoke a refresh token (end session)
+export const logout = async (req: Request, res: Response) => {
+  try {
+    // read refresh token from cookie
+    // @ts-ignore
+    const refreshToken = req.cookies?.refreshToken as string | undefined;
+    if (!refreshToken) return res.json({ message: 'Logged out' });
+
+    const secret = process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET;
+    if (!secret) {
+      throw new Error('Thiếu cấu hình JWT_REFRESH_SECRET hoặc JWT_SECRET trong biến môi trường');
+    }
+
+    // decode to get user id (if invalid, just clear cookie)
+    let decoded: JWTPayload | null = null;
+    try {
+      decoded = jwt.verify(refreshToken, secret as jwt.Secret) as JWTPayload;
+    } catch (e) {
+      // invalid token: clear cookie and return
+      res.clearCookie('refreshToken');
+      return res.json({ message: 'Logged out' });
+    }
+
+    const user = await User.findByPk(decoded.user_id);
+    if (user) {
+      // @ts-ignore
+      if (user.refresh_token && user.refresh_token === refreshToken) {
+        // clear stored refresh token
+        // @ts-ignore
+        await user.update({ refresh_token: null });
+      }
+    }
+
+    // clear cookie on client
+    res.clearCookie('refreshToken');
+    return res.json({ message: 'Logged out' });
+  } catch (error: any) {
+    return res.status(500).json({ message: error.message });
+  }
 };
 
 // Đăng nhập
@@ -44,12 +147,25 @@ export const login = async (req: Request, res: Response) => {
       return res.status(401).json({ message: 'Thông tin đăng nhập không đúng' });
     }
 
-    const token = generateToken(user);
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
 
-    return res.json({
-      message: 'Đăng nhập thành công',
-      token,
-      user: {
+    // Store refresh token in DB (plaintext as requested)
+    await user.update({ refresh_token: refreshToken });
+
+    // set refresh token in HttpOnly cookie
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax' as const,
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    };
+    res.cookie('refreshToken', refreshToken, cookieOptions);
+
+      return res.json({
+        message: 'Đăng nhập thành công',
+        accessToken,
+        user: {
         user_id: user.user_id,
         username: user.username,
         email: user.email,
@@ -92,12 +208,25 @@ export const register = async (req: Request, res: Response) => {
       role: 'user',
     });
 
-    const token = generateToken(newUser);
+    const accessToken = generateAccessToken(newUser);
+    const refreshToken = generateRefreshToken(newUser);
 
-    return res.status(201).json({
-      message: 'Đăng ký thành công',
-      token,
-      user: {
+    // Store refresh token in DB (plaintext as requested)
+    await newUser.update({ refresh_token: refreshToken });
+
+    // set refresh token cookie
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax' as const,
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    };
+    res.cookie('refreshToken', refreshToken, cookieOptions);
+
+      return res.status(201).json({
+        message: 'Đăng ký thành công',
+        accessToken,
+        user: {
         user_id: newUser.user_id,
         username: newUser.username,
         email: newUser.email,

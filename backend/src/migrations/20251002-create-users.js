@@ -24,6 +24,10 @@ module.exports = {
         type: Sequelize.STRING(255),
         allowNull: false,
       },
+      refresh_token: {
+        type: Sequelize.STRING(255),
+        allowNull: true,
+      },
       phone_number: {
         type: Sequelize.STRING(20),
         allowNull: true,

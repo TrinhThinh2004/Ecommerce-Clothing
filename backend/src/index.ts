@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import cookieParser from 'cookie-parser';
 import path from "path";
 import { testConnection } from "./config/database";
 import productsRouter from "./routes/products";
@@ -11,8 +12,10 @@ dotenv.config();
 
 const app = express();
 
-app.use(cors());
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+app.use(cors({ origin: FRONTEND_URL, credentials: true }));
 app.use(express.json());
+app.use(cookieParser());
 
 // Serve static files từ thư mục uploads
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));

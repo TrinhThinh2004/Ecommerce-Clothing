@@ -9,13 +9,11 @@ module.exports = {
     const now = new Date();
     const saltRounds = 10;
 
-    // Admin password từ .env (quan trọng)
     const adminPassword = await bcrypt.hash(
       process.env.ADMIN_PASSWORD,
       saltRounds
     );
 
-    // User demo hardcode (không quan trọng)
     const userPassword = await bcrypt.hash("user123", saltRounds);
 
     await queryInterface.bulkInsert(
