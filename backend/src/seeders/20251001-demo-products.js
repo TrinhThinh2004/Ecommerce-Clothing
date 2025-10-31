@@ -62,6 +62,7 @@ module.exports = {
           created_at: now,
           updated_at: now,
         },
+        
       ],
       {}
     );

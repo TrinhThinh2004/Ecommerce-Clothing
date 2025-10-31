@@ -1,41 +1,76 @@
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+import axios from 'axios';
 
-export const getToken = (): string | null => {
-	try {
-		return localStorage.getItem('token');
-	} catch {
-		return null;
-	}
-};
+const API_URL = import.meta.env.VITE_API_URL;
 
-export const setToken = (token: string) => {
-	try {
-		localStorage.setItem('token', token);
-	} catch {}
-};
+const axiosInstance = axios.create({
+  baseURL: API_URL,
+  withCredentials: true,
+});
 
-export const clearToken = () => {
-	try {
-		localStorage.removeItem('token');
-	} catch {}
-};
-
-export async function apiFetch<T = any>(
-    path: string,
-    options: RequestInit & { auth?: boolean } = {}
-  ) {
-    const url = `${API_BASE_URL}${path}`;
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      ...(options.headers as Record<string, string>),
-    };
-  
-    if (options.auth) {
-      const token = getToken();
-      if (token) headers['Authorization'] = `Bearer ${token}`;
+axiosInstance.interceptors.request.use((config) => {
+  try {
+    const token = localStorage.getItem('accessToken');
+    if (token && config.headers) {
+      config.headers['Authorization'] = `Bearer ${token}`;
     }
-  
-    const res = await fetch(url, { ...options, headers });
-    if (!res.ok) throw new Error(await res.text());
-    return (await res.json()) as T;
+  } catch {}
+  return config;
+});
+
+let isRefreshing = false;
+let failedQueue: Array<{ resolve: (v?: any) => void; reject: (e?: any) => void; config: any }> = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach((p) => {
+    if (error) p.reject(error);
+    else p.resolve(token);
+  });
+  failedQueue = [];
+};
+
+axiosInstance.interceptors.response.use(
+  (res) => res,
+  async (err) => {
+    const originalRequest = err.config;
+const url = originalRequest?.url || '';
+const isAuthRoute =
+  url.includes('/api/v1/auth/login') ||
+  url.includes('/api/v1/auth/register') ||
+  url.includes('/api/v1/auth/refresh') ||
+  url.includes('/api/v1/auth/logout');
+    if (err.response && err.response.status === 401 && !originalRequest._retry && !isAuthRoute) {
+      if (isRefreshing) {
+        return new Promise(function (resolve, reject) {
+          failedQueue.push({ resolve, reject, config: originalRequest });
+        })
+          .then(() => axiosInstance(originalRequest))
+          .catch((e) => Promise.reject(e));
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        const resp = await axiosInstance.post('/api/v1/auth/refresh', {});
+        const newAccessToken = resp.data?.accessToken;
+        if (newAccessToken) {
+          localStorage.setItem('accessToken', newAccessToken);
+          processQueue(null, newAccessToken);
+          originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
+          return axiosInstance(originalRequest);
+        }
+      } catch (refreshError) {
+        processQueue(refreshError, null);
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('user');
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
+    }
+
+    return Promise.reject(err);
   }
+);
+
+export default axiosInstance;

@@ -6,6 +6,7 @@ export interface UserAttributes {
   username: string;
   email: string;
   password_hash: string;
+  refresh_token?: string | null;
   phone_number?: string | null;
   role: 'admin' | 'user';
   created_at?: Date;
@@ -22,6 +23,7 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
   public username!: string;
   public email!: string;
   public password_hash!: string;
+  public refresh_token!: string | null;
   public phone_number!: string | null;
   public role!: 'admin' | 'user';
   public created_at!: Date;
@@ -73,6 +75,10 @@ User.init(
       validate: {
         notEmpty: true,
       },
+    },
+    refresh_token: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
     },
     phone_number: {
       type: DataTypes.STRING(20),
