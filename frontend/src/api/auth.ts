@@ -1,7 +1,4 @@
-import axios from "axios";
 import axiosInstance from "./client";
-
-const API_URL = import.meta.env.VITE_API_URL;
 
 export const SignInUser = async (userEmail: string, userPassword: string) => {
 	try {

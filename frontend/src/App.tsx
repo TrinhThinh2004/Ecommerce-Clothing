@@ -2,7 +2,7 @@
 import { BrowserRouter as Router } from "react-router-dom";
 import ScrollToTop from "./routes/ScrollToTop";
 import AppRoutes from "./routes/AppRoutes";
-import { ToastContainer, toast } from 'react-toastify';
+import { ToastContainer } from 'react-toastify';
 function App() {
   return (
     <>

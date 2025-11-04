@@ -17,55 +17,49 @@ type NavItem = {
   badge?: string | React.ReactNode;
   children?: NavItem[];
 };
+
 const NAV_ITEMS: NavItem[] = [
   {
-    label: "HÀNG MỚI",
-    href: "/hang-moi",
-  },
-  {
     label: "SẢN PHẨM",
-    href: "/san-pham",
-    children: [
-      { label: "Tất cả", href: "/san-pham" },
-      { label: "Best Seller", href: "/san-pham?tag=best" },
-      { label: "Giảm giá", href: "/san-pham?tag=sale" },
-    ],
+    href: "",
+    children: [{ label: "Tất cả", href: "/san-pham" }],
   },
   {
     label: "ÁO NAM",
-    href: "/ao-nam",
+    href: "",
     children: [
-      { label: "Áo thun", href: "/ao-nam/ao-thun" },
-      { label: "Sơ mi", href: "/ao-nam/so-mi" },
-      { label: "Áo khoác", href: "/ao-nam/ao-khoac" },
+      { label: "Áo thun", href: "/san-pham/1" },
+      { label: "Sơ mi", href: "/san-pham/2" },
+      { label: "Áo khoác", href: "/san-pham/3" },
     ],
   },
   {
     label: "QUẦN NAM",
-    href: "/quan-nam",
+    href: "",
     children: [
-      { label: "Jeans", href: "/quan-nam/jeans" },
-      { label: "Kaki", href: "/quan-nam/kaki" },
-      { label: "Jogger", href: "/quan-nam/jogger" },
+      { label: "Jeans", href: "/san-pham/4" },
+      { label: "Kaki", href: "/san-pham/5" },
+      { label: "Jogger", href: "/san-pham/6" },
     ],
   },
-  { label: "PHỤ KIỆN", href: "/phu-kien" },
   {
-    label: "OUTLET",
-    href: "/outlet",
+    label: "PHỤ KIỆN",
+    href: "",
+    children: [
+      { label: "Dây Nịt", href: "/san-pham/7" },
+      { label: "Mũ", href: "/san-pham/8" },
+    ],
   },
-  { label: "DISNEY", href: "/disney" },
-  { label: "JEANS", href: "/jeans" },
+  { label: "OUTLET", href: "/outlet" },
   { label: "TIN THỜI TRANG", href: "/tin" },
 ];
 
 export default function Header() {
   const [openMobile, setOpenMobile] = useState(false);
   const [query, setQuery] = useState("");
-  const cartCount = 0;
-
   const [isMenuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const cartCount = 0;
 
   const primaryNav = useMemo(() => NAV_ITEMS, []);
   const storedUser = useMemo(() => {
@@ -79,11 +73,9 @@ export default function Header() {
   const handleLogout = async () => {
     try {
       await Logout();
-      localStorage.removeItem("user");
-      localStorage.removeItem("accessToken");
-      window.location.href = "/";
     } catch (error) {
       console.error("Logout failed:", error);
+    } finally {
       localStorage.removeItem("user");
       localStorage.removeItem("accessToken");
       window.location.href = "/";
@@ -91,24 +83,24 @@ export default function Header() {
   };
 
   const handleBlur = (event: React.FocusEvent<HTMLDivElement>) => {
-    if (event.currentTarget.contains(event.relatedTarget as Node)) {
-      return;
-    }
+    if (event.currentTarget.contains(event.relatedTarget as Node)) return;
     setMenuOpen(false);
   };
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 w-full">
+      {/* ---- Thanh trên cùng ---- */}
       <div className="bg-black text-white">
         <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3">
-          <a href="/" className="shrink-0">
+          <Link to="/" className="shrink-0">
             <img
-              src="../../../public/logo.png"
+              src="/logo.png"
               alt="160STORE"
               className="h-7 w-auto object-contain"
             />
-          </a>
+          </Link>
 
+          {/* ---- Ô tìm kiếm desktop ---- */}
           <form
             onSubmit={(e) => e.preventDefault()}
             className="hidden md:block md:flex-1"
@@ -132,6 +124,7 @@ export default function Header() {
             </div>
           </form>
 
+          {/* ---- Icon bên phải ---- */}
           <nav className="ml-auto hidden items-center gap-6 md:flex">
             <Link
               to="/he-thong-cua-hang"
@@ -142,11 +135,7 @@ export default function Header() {
             </Link>
 
             {storedUser ? (
-              <div
-                className="relative"
-                ref={menuRef}
-                onBlur={handleBlur}
-              >
+              <div className="relative" ref={menuRef} onBlur={handleBlur}>
                 <button
                   onClick={() => setMenuOpen(!isMenuOpen)}
                   className="flex items-center gap-1.5 hover:opacity-90"
@@ -161,7 +150,7 @@ export default function Header() {
                 </button>
 
                 {isMenuOpen && (
-                  <div className="absolute right-0 mt-3 w-48 origin-top-right rounded-md bg-white p-1 text-black shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
+                  <div className="absolute right-0 mt-3 w-48 origin-top-right rounded-md bg-white p-1 text-black shadow-lg ring-1 ring-black ring-opacity-5 z-10">
                     <Link
                       to="/tai-khoan"
                       onClick={() => setMenuOpen(false)}
@@ -181,15 +170,15 @@ export default function Header() {
             ) : (
               <Link
                 to="/dang-nhap"
-                className="flex  items-center gap-2 hover:opacity-90"
+                className="flex items-center gap-2 hover:opacity-90"
               >
                 <User2 className="h-5 w-5" />
                 <span className="text-sm">Đăng nhập</span>
               </Link>
             )}
 
-            <a
-              href="/gio-hang"
+            <Link
+              to="/gio-hang"
               className="relative flex items-center gap-2 hover:opacity-90"
             >
               <ShoppingCart className="h-5 w-5" />
@@ -199,13 +188,13 @@ export default function Header() {
                   {cartCount}
                 </span>
               )}
-            </a>
+            </Link>
           </nav>
 
+          {/* ---- Mobile icon ---- */}
           <div className="ml-auto flex items-center gap-2 md:hidden">
             <button
               className="grid h-9 w-9 place-content-center rounded-md bg-white"
-              aria-label="Tìm kiếm"
               onClick={() => {
                 const el = document.getElementById("m-search");
                 el?.focus();
@@ -216,7 +205,6 @@ export default function Header() {
             <button
               className="grid h-9 w-9 place-content-center rounded-md bg-white"
               onClick={() => setOpenMobile((v) => !v)}
-              aria-label="Menu"
             >
               {openMobile ? (
                 <X className="h-5 w-5 text-black" />
@@ -228,13 +216,15 @@ export default function Header() {
         </div>
       </div>
 
+      {/* ---- Thanh menu chính ---- */}
       <div className="border-b border-neutral-200 bg-white">
+        {/* Desktop menu */}
         <div className="mx-auto hidden items-center px-4 md:flex justify-center">
           <ul className="flex items-center gap-2 py-3 text-sm font-bold">
             {primaryNav.map((item) => (
               <li key={item.label} className="shrink-0 group relative">
-                <a
-                  href={item.href}
+                <Link
+                  to={item.href}
                   className="inline-flex items-center gap-1 rounded px-3 py-2 hover:bg-neutral-100"
                 >
                   {item.label === "HÀNG MỚI" && (
@@ -247,18 +237,18 @@ export default function Header() {
                     <ChevronDown className="h-4 w-4 text-neutral-500 group-hover:rotate-180 transition" />
                   )}
                   {item.badge}
-                </a>
+                </Link>
                 {item.children && (
                   <div className="invisible absolute mt-1 w-56 rounded-md border border-neutral-200 bg-white p-2 opacity-0 shadow-lg transition group-hover:visible group-hover:opacity-100 z-10">
                     <ul className="flex flex-col">
                       {item.children.map((c) => (
                         <li key={c.label}>
-                          <a
-                            href={c.href}
+                          <Link
+                            to={c.href}
                             className="block rounded px-3 py-2 text-sm hover:bg-neutral-100"
                           >
                             {c.label}
-                          </a>
+                          </Link>
                         </li>
                       ))}
                     </ul>
@@ -269,6 +259,7 @@ export default function Header() {
           </ul>
         </div>
 
+        {/* ---- Mobile menu ---- */}
         <div className="md:hidden">
           <div className="px-4 py-2">
             <div className="relative">
@@ -289,10 +280,10 @@ export default function Header() {
                 <MobileItem key={item.label} item={item} />
               ))}
               <li className="mt-2 flex items-center justify-between rounded-md bg-black px-3 py-3 text-white">
-                <a href="/gio-hang" className="flex items-center gap-2">
+                <Link to="/gio-hang" className="flex items-center gap-2">
                   <ShoppingCart className="h-5 w-5" />
                   <span>Giỏ hàng</span>
-                </a>
+                </Link>
                 {cartCount > 0 && (
                   <span className="grid h-5 min-w-5 place-content-center rounded-full bg-white px-1 text-xs font-semibold text-black">
                     {cartCount}
@@ -314,13 +305,13 @@ function MobileItem({ item }: { item: NavItem }) {
   return (
     <li className="rounded-md">
       <div className="flex items-center">
-        <a
-          href={item.href}
+        <Link
+          to={item.href}
           className="flex-1 rounded-md px-3 py-3 text-sm font-semibold hover:bg-neutral-100"
         >
           <span className="uppercase">{item.label}</span>
           {item.badge}
-        </a>
+        </Link>
         {hasChildren && (
           <button
             onClick={() => setOpen((v) => !v)}
@@ -337,12 +328,12 @@ function MobileItem({ item }: { item: NavItem }) {
         <ul className="mb-1 ml-2 space-y-1 rounded-md border-l border-neutral-200 pl-2">
           {item.children!.map((c) => (
             <li key={c.label}>
-              <a
-                href={c.href}
+              <Link
+                to={c.href}
                 className="block rounded px-3 py-2 text-sm hover:bg-neutral-100"
               >
                 {c.label}
-              </a>
+              </Link>
             </li>
           ))}
         </ul>
