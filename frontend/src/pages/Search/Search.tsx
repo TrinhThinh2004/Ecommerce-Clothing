@@ -32,12 +32,14 @@ const MOCK: ProductWithCategory[] = Array.from({ length: 48 }, (_, i) => {
   const idx = i % baseImgs.length;
   return {
     id: String(i + 1),
+    product_id: i + 1,
     name: NAMES[idx] + ` #${i + 1}`,
     image: baseImgs[idx],
     price: PRICES[idx],
     isNew: i % 4 === 0,
     voucherText: i % 3 === 0 ? "Voucher 30K" : undefined,
     category: CATES[idx],
+    stock_quantity: 100,
   };
 });
 
