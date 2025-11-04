@@ -3,6 +3,7 @@ import { useState } from "react";
 import CanvasPolygons from "./_Components/CanvasPolygons";
 import { SignUpUser } from "../../api/auth";
 import { toast } from "react-toastify";
+import axios from "axios"; 
 
 export default function PolygonsRegister() {
   const [username, setUsername] = useState("");
@@ -21,9 +22,14 @@ export default function PolygonsRegister() {
       await SignUpUser({ username, email, password, phone_number: phone || undefined });
       toast.success("Đăng ký thành công. Vui lòng đăng nhập");
       // TODO: điều hướng sang /dang-nhap
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Đăng ký thất bại");
-    } finally {
+    } catch (err: unknown) {
+  if (axios.isAxiosError(err)) {
+    toast.error(err.response?.data?.message || "Đăng ký thất bại");
+  } else {
+    toast.error("Đăng ký thất bại");
+  }
+}
+ finally {
       setLoading(false);
     }
   };

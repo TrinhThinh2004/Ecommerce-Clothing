@@ -1,5 +1,5 @@
-import { DataTypes, Model, Optional } from 'sequelize';
-import sequelize from '../config/database';
+import { DataTypes, Model, Optional } from "sequelize";
+import sequelize from "../config/database";
 
 export interface ProductAttributes {
   product_id: number;
@@ -15,9 +15,21 @@ export interface ProductAttributes {
   updated_at?: Date;
 }
 
-export type ProductCreationAttributes = Optional<ProductAttributes, 'product_id' | 'description' | 'image_url' | 'category_id' | 'brand_id' | 'created_at' | 'updated_at'>;
+export type ProductCreationAttributes = Optional<
+  ProductAttributes,
+  | "product_id"
+  | "description"
+  | "image_url"
+  | "category_id"
+  | "brand_id"
+  | "created_at"
+  | "updated_at"
+>;
 
-export class Product extends Model<ProductAttributes, ProductCreationAttributes> implements ProductAttributes {
+export class Product
+  extends Model<ProductAttributes, ProductCreationAttributes>
+  implements ProductAttributes
+{
   public product_id!: number;
   public name!: string;
   public description!: string | null;
@@ -57,11 +69,12 @@ Product.init(
     image_url: {
       type: DataTypes.TEXT,
       allowNull: true,
-    },active: {
-      type: DataTypes.BOOLEAN,
-      allowNull: false,
-      defaultValue: true,
-    },
+    },
+    active: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
+    },
     category_id: {
       type: DataTypes.INTEGER,
       allowNull: true,
@@ -83,11 +96,17 @@ Product.init(
   },
   {
     sequelize,
-    tableName: 'products',
-    modelName: 'Product',
+    tableName: "products",
+    modelName: "Product",
     timestamps: false,
     underscored: true,
   }
 );
 
 export default Product;
+import Category from "./Categorys";
+
+Product.belongsTo(Category, {
+  foreignKey: "category_id",
+  as: "category",
+});

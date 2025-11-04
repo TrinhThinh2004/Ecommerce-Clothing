@@ -1,10 +1,12 @@
-// src/routes/routeConfig.tsx
 import { lazy, type ComponentType, type LazyExoticComponent } from "react";
+
 import Layout from "../components/Layout/Layout";
 import { PATHS } from "./paths";
+const ProductsPage = lazy(() => import("../pages/Products/ProductsPage"));
 
-// Public (lazy)
+// --- Public (lazy) ---
 const Home = lazy(() => import("../pages/Home/Home"));
+const CategoryPage = lazy(() => import("../pages/Category/CategoryPage")); // ✅ TRANG DANH MỤC
 const ProductDetail = lazy(
   () => import("../pages/ProductDetail/ProductDetail")
 );
@@ -14,7 +16,7 @@ const StoreLocator = lazy(() => import("../pages/Stores/StoreLocator"));
 const Cart = lazy(() => import("../pages/Cart/Cart"));
 const Search = lazy(() => import("../pages/Search/Search"));
 
-// Admin (lazy)
+// --- Admin (lazy) ---
 const AdminDashboard = lazy(
   () => import("../pages/Admin/AdminDashboard/AdminDashboard")
 );
@@ -26,18 +28,14 @@ const AdminCustomers = lazy(
   () => import("../pages/Admin/AdminCustomers/AdminCustomers")
 );
 
-// ❗️Loại bỏ children khỏi Layout props vì children sẽ được wrap ở AppRoutes
+// --- Các định nghĩa Type ---
 type PublicLayoutProps = Omit<React.ComponentProps<typeof Layout>, "children">;
-
-// ✅ Kiểu component an toàn, không dùng `any`, hỗ trợ cả lazy và non-lazy
 type PageElement =
   | ComponentType<Record<string, unknown>>
   | LazyExoticComponent<ComponentType<Record<string, unknown>>>;
-
 type LayoutWrapper =
   | { type: "none" }
   | { type: "public"; props?: PublicLayoutProps };
-
 type RouteItem = {
   path: string;
   element: PageElement;
@@ -45,8 +43,22 @@ type RouteItem = {
 };
 
 export const ROUTES: RouteItem[] = [
-  // Public
+  // --- Public Routes ---
   { path: PATHS.HOME, element: Home, layout: { type: "public" } },
+
+  // ✅ ROUTE MỚI — hiển thị sản phẩm theo danh mục
+  {
+    path: "/san-pham/:id",
+    element: CategoryPage,
+    layout: { type: "public" },
+  },
+  // ✅ Hiển thị tất cả sản phẩm
+  {
+    path: "/san-pham",
+    element: ProductsPage,
+    layout: { type: "public" },
+  },
+
   {
     path: PATHS.PRODUCT_DETAIL,
     element: ProductDetail,
@@ -70,7 +82,7 @@ export const ROUTES: RouteItem[] = [
     layout: { type: "public", props: { noBanner: true, noFooter: true } },
   },
 
-  // Admin (đã tự bọc AdminLayout bên trong)
+  // --- Admin Routes ---
   { path: PATHS.ADMIN, element: AdminDashboard, layout: { type: "none" } },
   { path: PATHS.ADMIN_ORDERS, element: AdminOrders, layout: { type: "none" } },
   {

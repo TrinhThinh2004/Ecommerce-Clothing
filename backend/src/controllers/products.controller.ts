@@ -1,6 +1,22 @@
 import { Request, Response } from 'express';
 import Product from '../models/Product';
 
+export const getProductsByCategory = async (req: Request, res: Response) => {
+  try {
+    const { categoryId } = req.params;
+    if (!categoryId) {
+      return res.status(400).json({ message: 'Vui lòng cung cấp ID danh mục' });
+    }
+    const products = await Product.findAll({
+      where: { category_id: Number(categoryId) },
+      order: [['created_at', 'DESC']],
+    });
+    const data = products.map((p) => p.get({ plain: true }));
+    return res.json({ data });
+  } catch (error: any) {
+    return res.status(500).json({ message: error.message });
+  }
+};
 export const getAllProducts = async (req: Request, res: Response) => {
   try {
     const products = await Product.findAll({

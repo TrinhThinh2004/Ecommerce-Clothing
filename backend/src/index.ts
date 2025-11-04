@@ -7,7 +7,7 @@ import { testConnection } from "./config/database";
 import productsRouter from "./routes/products";
 import authRouter from "./routes/auth";
 import adminRouter from "./routes/admin";
-
+import categoryRoutes from "./routes/categorys";
 dotenv.config();
 
 const app = express();
@@ -28,7 +28,7 @@ app.get("/", (req, res) => {
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/products', productsRouter);
 app.use('/api/v1/admin', adminRouter);
-
+app.use("/api/v1/categorys", categoryRoutes);
 // Test kết nối database khi khởi động server 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 5000;
 app.listen(PORT, async () => {
