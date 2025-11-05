@@ -1,53 +1,47 @@
-
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Hero from "../../components/Hero/Hero";
-import ProductGrid from "../../components/Products/ProductGrid";
-import type { Product } from "../../types/product";
+import ProductCard from "../../components/Products/ProductCard";
+import Pagination from "../../components/Products/Pagination";
 import { fetchProducts } from "../../api/products";
+import type { Product } from "../../types/product";
 
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+
+  const limit = 12; // ✅ 12 sản phẩm / trang
 
   useEffect(() => {
     const loadProducts = async () => {
       try {
         setLoading(true);
         const data = await fetchProducts();
-        const transformedProducts = data.map((product, index) => ({
-          ...product,
-          isNew: index % 3 === 0,
-          voucherText: index % 2 === 0 ? "Voucher 30K" : undefined,
-        }));
-        setProducts(transformedProducts);
+        setProducts(data);
       } catch (err) {
-        setError("Không thể tải danh sách sản phẩm");
-        console.error("Error fetching products:", err);
+        console.error("Lỗi tải sản phẩm:", err);
+        setError("Không thể tải danh sách sản phẩm.");
       } finally {
         setLoading(false);
       }
     };
+
     loadProducts();
   }, []);
+
+  const paginatedProducts = useMemo(() => {
+    const start = (page - 1) * limit;
+    return products.slice(start, start + limit);
+  }, [products, page]);
+
+  const totalPages = Math.ceil(products.length / limit);
 
   if (loading) {
     return (
       <div className="space-y-6 bg-gradient-to-b from-amber-50 to-amber-100 pb-10 pt-4">
         <Hero />
-        <div className="mx-auto mt-6 w-full max-w-6xl px-1 sm:px-0">
-          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="animate-pulse">
-                <div className="h-64 bg-gray-200 rounded-xl"></div>
-                <div className="mt-3 space-y-2">
-                  <div className="h-4 bg-gray-200 rounded"></div>
-                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <p className="text-center py-10">Đang tải sản phẩm...</p>
       </div>
     );
   }
@@ -56,28 +50,46 @@ export default function Home() {
     return (
       <div className="space-y-6 bg-gradient-to-b from-amber-50 to-amber-100 pb-10 pt-4">
         <Hero />
-        <div className="mx-auto mt-6 w-full max-w-6xl px-1 sm:px-0">
-          <div className="text-center py-8">
-            <p className="text-red-500">{error}</p>
-          </div>
-        </div>
+        <p className="text-center text-red-500 py-10">{error}</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 bg-gradient-to-b from-amber-50 to-amber-100 pb-10 pt-4">
-      {/* Hero "HÀNG MỚI" */}
+    <div className="bg-gradient-to-b from-amber-50 to-amber-100 pb-10 pt-4">
+      {/* ✅ Banner Hero */}
       <Hero />
 
-      {/* Lưới sản phẩm + phân trang */}
-      <ProductGrid
-        items={products}
-        pageSize={12}
-        showSeeMore 
-        seeMoreText="Xem thêm"
-      />
+      {/* ✅ Tiêu đề */}
+      <div className="mx-auto max-w-6xl px-4 mt-8 mb-4">
+        <h2 className="text-2xl font-bold text-gray-800 uppercase">
+          Tất cả sản phẩm
+        </h2>
+      </div>
+
+      {/* ✅ Danh sách sản phẩm */}
+      <div className="mx-auto w-full max-w-6xl px-4">
+        {paginatedProducts.length === 0 ? (
+          <p>Không có sản phẩm nào.</p>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            {paginatedProducts.map((p) => (
+              <ProductCard key={p.product_id} item={p} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ✅ Phân trang */}
+      {totalPages > 1 && (
+        <div className="mt-8">
+          <Pagination
+            page={page}
+            pageCount={totalPages}
+            onPageChange={(p) => setPage(p)}
+          />
+        </div>
+      )}
     </div>
   );
 }
-
