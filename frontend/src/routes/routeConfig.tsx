@@ -15,7 +15,9 @@ const Register = lazy(() => import("../pages/auth/Register"));
 const StoreLocator = lazy(() => import("../pages/Stores/StoreLocator"));
 const Cart = lazy(() => import("../pages/Cart/Cart"));
 const Search = lazy(() => import("../pages/Search/Search"));
-
+const FashionNewsPage = lazy(
+  () => import("../pages/FashionNews/FashionNewsPage")
+);
 // --- Admin (lazy) ---
 const AdminDashboard = lazy(
   () => import("../pages/Admin/AdminDashboard/AdminDashboard")
@@ -46,24 +48,37 @@ export const ROUTES: RouteItem[] = [
   // --- Public Routes ---
   { path: PATHS.HOME, element: Home, layout: { type: "public" } },
 
-  // ✅ ROUTE MỚI — hiển thị sản phẩm theo danh mục
-  {
-    path: "/san-pham/:id",
-    element: CategoryPage,
-    layout: { type: "public" },
-  },
-  // ✅ Hiển thị tất cả sản phẩm
+  // ✅ Trang tất cả sản phẩm
   {
     path: "/san-pham",
     element: ProductsPage,
     layout: { type: "public" },
   },
 
+  // ✅ Trang danh mục (nếu bạn có dùng)
   {
-    path: PATHS.PRODUCT_DETAIL,
+    path: "/san-pham/danh-muc/:id",
+    element: CategoryPage,
+    layout: { type: "public" },
+  },
+
+  // ✅ Trang chi tiết sản phẩm
+  {
+    path: "/san-pham/:id",
     element: ProductDetail,
     layout: { type: "public" },
   },
+  {
+    path: "/san-pham/:id",
+    element: ProductDetail,
+    layout: { type: "public" },
+  },
+  {
+    path: PATHS.FASHION_NEWS,
+    element: FashionNewsPage,
+    layout: { type: "public" },
+  },
+
   { path: PATHS.LOGIN, element: Login, layout: { type: "none" } },
   { path: PATHS.REGISTER, element: Register, layout: { type: "none" } },
   {

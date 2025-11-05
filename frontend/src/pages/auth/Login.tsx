@@ -22,8 +22,13 @@ export default function Login() {
       if (role === "admin") navigate("/admin");
       else navigate("/");
 
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Đăng nhập thất bại");
+    } catch (err: unknown) {
+      if (err && typeof err === 'object' && 'response' in err) {
+        const error = err as { response?: { data?: { message?: string } } };
+        toast.error(error.response?.data?.message || "Đăng nhập thất bại");
+      } else {
+        toast.error("Đăng nhập thất bại");
+      }
     } finally {
       setLoading(false);
     }

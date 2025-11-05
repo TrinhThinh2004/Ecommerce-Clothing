@@ -28,30 +28,30 @@ const NAV_ITEMS: NavItem[] = [
     label: "ÁO NAM",
     href: "",
     children: [
-      { label: "Áo thun", href: "/san-pham/1" },
-      { label: "Sơ mi", href: "/san-pham/2" },
-      { label: "Áo khoác", href: "/san-pham/3" },
+      { label: "Áo thun", href: "/san-pham/danh-muc/1" },
+      { label: "Sơ mi", href: "/san-pham/danh-muc/2" },
+      { label: "Áo khoác", href: "/san-pham/danh-muc/3" },
     ],
   },
   {
     label: "QUẦN NAM",
     href: "",
     children: [
-      { label: "Jeans", href: "/san-pham/4" },
-      { label: "Kaki", href: "/san-pham/5" },
-      { label: "Jogger", href: "/san-pham/6" },
+      { label: "Jeans", href: "/san-pham/danh-muc/4" },
+      { label: "Kaki", href: "/san-pham/danh-muc/5" },
+      { label: "Jogger", href: "/san-pham/danh-muc/6" },
     ],
   },
   {
     label: "PHỤ KIỆN",
     href: "",
     children: [
-      { label: "Dây Nịt", href: "/san-pham/7" },
-      { label: "Mũ", href: "/san-pham/8" },
+      { label: "Dây Nịt", href: "/san-pham/danh-muc/7" },
+      { label: "Mũ", href: "/san-pham/danh-muc/8" },
     ],
   },
   { label: "OUTLET", href: "/outlet" },
-  { label: "TIN THỜI TRANG", href: "/tin" },
+  { label: "TIN THỜI TRANG", href: "/tin-thoi-trang" },
 ];
 
 export default function Header() {
