@@ -3,10 +3,12 @@ import { useNavigate } from "react-router-dom";
 import CanvasPolygons from "./_Components/CanvasPolygons";
 import { SignInUser } from "../../api/auth";
 import { toast } from "react-toastify";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -21,9 +23,8 @@ export default function Login() {
       const role = res?.user?.role || "user";
       if (role === "admin") navigate("/admin");
       else navigate("/");
-
     } catch (err: unknown) {
-      if (err && typeof err === 'object' && 'response' in err) {
+      if (err && typeof err === "object" && "response" in err) {
         const error = err as { response?: { data?: { message?: string } } };
         toast.error(error.response?.data?.message || "Đăng nhập thất bại");
       } else {
@@ -49,6 +50,7 @@ export default function Login() {
             </p>
 
             <form onSubmit={handleSubmit}>
+              {/* EMAIL */}
               <label className="mb-1 block text-[10px] uppercase tracking-widest text-cyan-100/70">
                 Email
               </label>
@@ -66,35 +68,63 @@ export default function Login() {
                 <span className="uline-sweep uline-slim peer-focus:animate-uline"></span>
               </div>
 
+              {/* PASSWORD */}
               <label className="mb-1 block text-[10px] uppercase tracking-widest text-cyan-100/70">
                 Password
               </label>
               <div className="relative mb-4">
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="peer input-neon w-full rounded-md bg-transparent px-0 py-2 text-[clamp(.9rem,2.6vw,.95rem)] text-cyan-50 placeholder:text-cyan-200/30 caret-neon text-neon selection:bg-cyan-500/20"
+                  className="peer input-neon w-full rounded-md bg-transparent px-0 py-2 pr-10 text-[clamp(.9rem,2.6vw,.95rem)] text-cyan-50 placeholder:text-cyan-200/30 caret-neon text-neon selection:bg-cyan-500/20"
                   placeholder=" "
                   required
                 />
+                {/* 👁 Icon hiện/ẩn mật khẩu */}
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-0 top-1/2 -translate-y-1/2 p-2 text-cyan-300 hover:text-cyan-100 transition"
+                  aria-label="Hiện mật khẩu"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
                 <span className="uline-track uline-slim"></span>
                 <span className="uline-sweep uline-slim peer-focus:animate-uline"></span>
               </div>
 
+              {/* REMEMBER ME */}
               <div className="mb-5 flex items-center justify-between text-[clamp(.82rem,2.4vw,.9rem)]">
                 <label className="inline-flex select-none items-center gap-2">
-                  <input type="checkbox" className="h-4 w-4 appearance-none rounded-[4px] border border-cyan-400/50 bg-transparent checked:bg-cyan-400 checked:shadow-[0_0_8px_rgba(0,255,255,0.8)]" />
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 appearance-none rounded-[4px] border border-cyan-400/50 bg-transparent checked:bg-cyan-400 checked:shadow-[0_0_8px_rgba(0,255,255,0.8)]"
+                  />
                   <span className="text-cyan-100/80">Remember me</span>
                 </label>
-                <button type="button" className="text-cyan-300/80 underline-offset-4 hover:text-cyan-200 hover:underline">
+                <button
+                  type="button"
+                  className="text-cyan-300/80 underline-offset-4 hover:text-cyan-200 hover:underline"
+                >
                   Forgot Password?
                 </button>
               </div>
 
-              <button type="submit" disabled={loading} className="group relative w-full overflow-hidden rounded-xl border border-cyan-400/50 bg-cyan-400/10 px-5 py-2.5 text-[clamp(.9rem,2.6vw,.95rem)] font-medium tracking-wide text-cyan-50 shadow-[0_0_16px_rgba(0,255,255,0.22)] transition-colors hover:bg-cyan-400/20 disabled:opacity-60">
-                <span className="relative z-10">{loading ? "SIGNING IN..." : "SIGN IN"}</span>
+              {/* SUBMIT */}
+              <button
+                type="submit"
+                disabled={loading}
+                className="group relative w-full overflow-hidden rounded-xl border border-cyan-400/50 bg-cyan-400/10 px-5 py-2.5 text-[clamp(.9rem,2.6vw,.95rem)] font-medium tracking-wide text-cyan-50 shadow-[0_0_16px_rgba(0,255,255,0.22)] transition-colors hover:bg-cyan-400/20 disabled:opacity-60"
+              >
+                <span className="relative z-10">
+                  {loading ? "SIGNING IN..." : "SIGN IN"}
+                </span>
                 <span className="pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 -skew-x-12 bg-white/20 blur-sm transition-transform duration-500 group-hover:translate-x-[250%]" />
               </button>
             </form>

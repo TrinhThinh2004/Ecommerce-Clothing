@@ -2,11 +2,11 @@ import { lazy, type ComponentType, type LazyExoticComponent } from "react";
 
 import Layout from "../components/Layout/Layout";
 import { PATHS } from "./paths";
-const ProductsPage = lazy(() => import("../pages/Products/ProductsPage"));
 
 // --- Public (lazy) ---
 const Home = lazy(() => import("../pages/Home/Home"));
-const CategoryPage = lazy(() => import("../pages/Category/CategoryPage")); // ✅ TRANG DANH MỤC
+const ProductsPage = lazy(() => import("../pages/Products/ProductsPage"));
+const CategoryPage = lazy(() => import("../pages/Category/CategoryPage"));
 const ProductDetail = lazy(
   () => import("../pages/ProductDetail/ProductDetail")
 );
@@ -17,6 +17,11 @@ const Cart = lazy(() => import("../pages/Cart/Cart"));
 const Search = lazy(() => import("../pages/Search/Search"));
 const FashionNewsPage = lazy(
   () => import("../pages/FashionNews/FashionNewsPage")
+);
+const OrderPolicy = lazy(() => import("../pages/policy/OrderPolicy")); // ✅ thêm dòng này
+const PrivacyPolicy = lazy(() => import("../pages/policy/PrivacyPolicy"));
+const ExchangeWarrantyPolicy = lazy(
+  () => import("../pages/policy/ExchangeWarrantyPolicy")
 );
 // --- Admin (lazy) ---
 const AdminDashboard = lazy(
@@ -49,13 +54,9 @@ export const ROUTES: RouteItem[] = [
   { path: PATHS.HOME, element: Home, layout: { type: "public" } },
 
   // ✅ Trang tất cả sản phẩm
-  {
-    path: "/san-pham",
-    element: ProductsPage,
-    layout: { type: "public" },
-  },
+  { path: "/san-pham", element: ProductsPage, layout: { type: "public" } },
 
-  // ✅ Trang danh mục (nếu bạn có dùng)
+  // ✅ Trang danh mục
   {
     path: "/san-pham/danh-muc/:id",
     element: CategoryPage,
@@ -66,13 +67,26 @@ export const ROUTES: RouteItem[] = [
   {
     path: "/san-pham/:id",
     element: ProductDetail,
-    layout: { type: "public" },
+    layout: { type: "public", props: { noBanner: true } },
+  },
+
+  // ✅ Trang hướng dẫn đặt hàng
+  {
+    path: "/huong-dan-dat-hang",
+    element: OrderPolicy,
+    layout: { type: "public", props: { noBanner: true } },
   },
   {
-    path: "/san-pham/:id",
-    element: ProductDetail,
-    layout: { type: "public" },
+    path: "/chinh-sach-bao-mat",
+    element: PrivacyPolicy,
+    layout: { type: "public", props: { noBanner: true } },
   },
+  {
+    path: "/chinh-sach-doi-tra",
+    element: ExchangeWarrantyPolicy,
+    layout: { type: "public", props: { noBanner: true } },
+  },
+  // ✅ Trang tin tức thời trang
   {
     path: PATHS.FASHION_NEWS,
     element: FashionNewsPage,
