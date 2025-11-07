@@ -146,7 +146,7 @@ export default function Footer() {
             <h4 className="mb-4 text-base font-semibold">CHÍNH SÁCH</h4>
             <ul className="space-y-3 text-sm">
               <li>
-                <a href="#" className="hover:underline">
+                <a href="/huong-dan-dat-hang" className="hover:underline">
                   Hướng dẫn đặt hàng
                 </a>
               </li>
@@ -203,7 +203,7 @@ export default function Footer() {
             />
 
             <a
-              href="#"
+              href="/he-thong-cua-hang"
               className="mt-3 inline-block text-sm font-medium text-white hover:underline"
             >
               XEM TẤT CẢ CỬA HÀNG

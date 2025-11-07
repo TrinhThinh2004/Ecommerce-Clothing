@@ -27,7 +27,7 @@ export default function CategoryPage() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
 
-  const limit = 4; // ✅ mỗi trang hiển thị 4 sản phẩm
+  const limit = 8; // ✅ mỗi trang hiển thị 8 sản phẩm
 
   useEffect(() => {
     if (!id) return;

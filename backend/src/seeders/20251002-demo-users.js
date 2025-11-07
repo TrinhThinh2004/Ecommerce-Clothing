@@ -46,6 +46,15 @@ module.exports = {
           created_at: now,
           updated_at: now,
         },
+        {
+          username: "user03",
+          email: "user@gmail.com",
+          password_hash: userPassword,
+          phone_number: "0909876543",
+          role: "user",
+          created_at: now,
+          updated_at: now,
+        },
       ],
       {}
     );

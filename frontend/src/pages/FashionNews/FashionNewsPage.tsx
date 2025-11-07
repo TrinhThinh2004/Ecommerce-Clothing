@@ -21,7 +21,7 @@ const mockArticles: Article[] = [
     title: "Quần Áo Nam Quận 8 - Shop Thời Trang Mới Phong Cách Cho Nam Giới",
     excerpt:
       "Giữa nhịp sống năng động của Quận 8, việc tìm một shop quần áo đẹp và đáng tin cậy không chỉ là để mua sắm,...",
-    imageUrl: "/images/articles/article-1.jpg",
+    imageUrl: "/public/article-1.png",
     date: "30/10/2025",
     href: "#",
   },
@@ -30,7 +30,7 @@ const mockArticles: Article[] = [
     title: "10 Phong Cách Thời Trang Nam Hiện Đại Phổ Biến Nhất",
     excerpt:
       "Bạn đã bao giờ đứng trước một tủ đồ đầy ắp mà vẫn không biết mặc gì chưa? Đó không chỉ là chuyện cảm...",
-    imageUrl: "/images/articles/article-2.jpg",
+    imageUrl: "/public/article-2.png",
     date: "28/10/2025",
     href: "#",
   },
@@ -39,7 +39,7 @@ const mockArticles: Article[] = [
     title: "Quần Tây Ống Rộng Nam Mặc Với Áo Gì? ",
     excerpt:
       "Quần tây ống rộng nam đang dần đầu xu hướng thời trang hiện đại nhờ sự kết hợp hài hòa giữa vẻ thoải mái...",
-    imageUrl: "/images/articles/article-3.jpg",
+    imageUrl: "/public/article-3.png",
     date: "28/10/2025",
     href: "#",
   },
@@ -48,7 +48,7 @@ const mockArticles: Article[] = [
     title: "Smart Casual Là Gì? Bí Quyết Phối Đồ Phong Cách ",
     excerpt:
       "Bạn đã bao giờ đứng trước tủ quần áo và tự hỏi: Mặc gì cho buổi họp không quá trang trọng nhưng vẫn cần sự...",
-    imageUrl: "/images/articles/article-4.jpg",
+    imageUrl: "/public/article-1.png",
     date: "28/10/2025",
     href: "#",
   },
@@ -57,7 +57,7 @@ const mockArticles: Article[] = [
     title: "15+ Outfit Phối Đồ Cho Người Béo Bụng, Hack Dáng Nhất",
     excerpt:
       "Nếu bạn từng lúng túng khi chọn quần áo vì vòng hai không hoàn hảo, bài viết này dành cho bạn. Dù là nam...",
-    imageUrl: "/images/articles/article-5.jpg",
+    imageUrl: "/public/article-2.png",
     date: "13/10/2025",
     href: "#",
   },
@@ -66,7 +66,7 @@ const mockArticles: Article[] = [
     title: "Top 7 Shop Quần Áo Rạch Giá Đẹp, Giá Tốt",
     excerpt:
       "Thị trường thời trang tại Rạch Giá ngày càng sôi động với sự góp mặt của nhiều thương hiệu lớn nhỏ, mang đến...",
-    imageUrl: "/images/articles/article-6.jpg",
+    imageUrl: "/public/article-3.png",
     date: "13/10/2025",
     href: "#",
   },
@@ -75,7 +75,7 @@ const mockArticles: Article[] = [
     title: "12+ Outfit Phối Đồ Thời Trang Nam Cao 1m7 Hack Dáng",
     excerpt:
       "Sở hữu chiều cao 1m7 được xem là một vóc dáng khá lý tưởng và phổ biến của nam giới Việt Nam. Tuy nhiên, đ...",
-    imageUrl: "/images/articles/article-7.jpg",
+    imageUrl: "/public/article-1.png",
     date: "13/10/2025",
     href: "#",
   },
@@ -84,7 +84,7 @@ const mockArticles: Article[] = [
     title: "Quần Trắng Phối Áo Màu Gì? Gợi Ý 15 Outfit Nam Với Quần Trắng",
     excerpt:
       "Màu trắng mang lại cảm giác sạch sẽ, hiện đại và dễ tạo thiện cảm ngay từ ánh nhìn đầu tiên. Tuy nhiên, câu hỏi...",
-    imageUrl: "/images/articles/article-8.jpg",
+    imageUrl: "/public/article-2.png",
     date: "09/10/2025",
     href: "#",
   },

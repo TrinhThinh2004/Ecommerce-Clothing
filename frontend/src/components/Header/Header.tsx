@@ -1,5 +1,5 @@
 import { useMemo, useState, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom"; // ✅ thêm useNavigate
 import { Logout } from "../../api/auth";
 import {
   Search,
@@ -50,11 +50,21 @@ const NAV_ITEMS: NavItem[] = [
       { label: "Mũ", href: "/san-pham/danh-muc/8" },
     ],
   },
-  { label: "OUTLET", href: "/outlet" },
+
   { label: "TIN THỜI TRANG", href: "/tin-thoi-trang" },
+  {
+    label: "Chính Sách",
+    href: "",
+    children: [
+      { label: "Hướng dẫn đặt hàng", href: "/huong-dan-dat-hang" },
+      { label: "Chính sách bảo mật", href: "/chinh-sach-bao-mat" },
+      { label: "Chính sách đổi trả", href: "/chinh-sach-doi-tra" },
+    ],
+  },
 ];
 
 export default function Header() {
+  const navigate = useNavigate(); // ✅ thêm hook điều hướng
   const [openMobile, setOpenMobile] = useState(false);
   const [query, setQuery] = useState("");
   const [isMenuOpen, setMenuOpen] = useState(false);
@@ -62,6 +72,7 @@ export default function Header() {
   const cartCount = 0;
 
   const primaryNav = useMemo(() => NAV_ITEMS, []);
+  // ✅ Lấy user từ localStorage
   const storedUser = useMemo(() => {
     try {
       return JSON.parse(localStorage.getItem("user") || "null");
@@ -69,6 +80,8 @@ export default function Header() {
       return null;
     }
   }, []);
+
+  const username = storedUser?.username || storedUser?.name || null;
 
   const handleLogout = async () => {
     try {
@@ -87,6 +100,17 @@ export default function Header() {
     setMenuOpen(false);
   };
 
+  // ✅ Khi nhấn Enter hoặc click nút kính lúp
+  const handleSearch = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const q = query.trim();
+    if (q) {
+      navigate(`/search?q=${encodeURIComponent(q)}`);
+      setQuery("");
+      setOpenMobile(false); // đóng menu mobile sau khi tìm
+    }
+  };
+
   return (
     <header className="fixed inset-x-0 top-0 z-50 w-full">
       {/* ---- Thanh trên cùng ---- */}
@@ -101,10 +125,7 @@ export default function Header() {
           </Link>
 
           {/* ---- Ô tìm kiếm desktop ---- */}
-          <form
-            onSubmit={(e) => e.preventDefault()}
-            className="hidden md:block md:flex-1"
-          >
+          <form onSubmit={handleSearch} className="hidden md:block md:flex-1">
             <div className="mx-auto w-full max-w-[520px] lg:max-w-[480px]">
               <div className="flex items-stretch overflow-hidden rounded-md bg-white ring-1 ring-white/20 focus-within:ring-2 focus-within:ring-white/40">
                 <input
@@ -141,7 +162,10 @@ export default function Header() {
                   className="flex items-center gap-1.5 hover:opacity-90"
                 >
                   <User2 className="h-5 w-5" />
-                  <span className="text-sm">Tài khoản</span>
+                  {/* ✅ Hiển thị tên */}
+                  <span className="text-sm font-semibold">
+                    Xin chào, {username || "Người dùng"}
+                  </span>
                   <ChevronDown
                     className={`h-4 w-4 transition-transform ${
                       isMenuOpen ? "rotate-180" : "rotate-0"
@@ -227,11 +251,6 @@ export default function Header() {
                   to={item.href}
                   className="inline-flex items-center gap-1 rounded px-3 py-2 hover:bg-neutral-100"
                 >
-                  {item.label === "HÀNG MỚI" && (
-                    <span role="img" aria-hidden className="mr-0.5">
-                      🔎
-                    </span>
-                  )}
                   <span className="uppercase tracking-wide">{item.label}</span>
                   {item.children && (
                     <ChevronDown className="h-4 w-4 text-neutral-500 group-hover:rotate-180 transition" />
@@ -267,10 +286,16 @@ export default function Header() {
                 id="m-search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSearch()} // ✅ enter để tìm
                 placeholder="Bạn đang tìm gì..."
                 className="w-full rounded-md border border-neutral-300 px-3 py-2 pr-10 text-sm focus:outline-none"
               />
-              <Search className="pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-neutral-500" />
+              <button
+                onClick={() => handleSearch()}
+                className="absolute right-2 top-1/2 -translate-y-1/2"
+              >
+                <Search className="h-5 w-5 text-neutral-600" />
+              </button>
             </div>
           </div>
 

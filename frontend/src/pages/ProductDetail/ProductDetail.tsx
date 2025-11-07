@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   ShoppingCart,
   Plus,
@@ -99,6 +99,7 @@ export default function ProductDetail() {
   const [size, setSize] = useState<string | undefined>();
   const [qty, setQty] = useState(1);
   const [showSizeGuide, setShowSizeGuide] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     async function fetchProduct() {
@@ -114,6 +115,21 @@ export default function ProductDetail() {
     }
     fetchProduct();
   }, [id]);
+
+  const requireLogin = (callback: () => void) => {
+    const user = localStorage.getItem("user");
+    if (!user) {
+      if (
+        window.confirm(
+          "⚠️ Bạn cần đăng nhập để tiếp tục. Bạn có muốn chuyển đến trang đăng nhập không?"
+        )
+      ) {
+        navigate("/");
+      }
+      return;
+    }
+    callback();
+  };
 
   const mainImg = product?.image_url;
   const imageUrl = mainImg?.startsWith("http")
@@ -214,17 +230,28 @@ export default function ProductDetail() {
                 </button>
               </div>
 
+              {/* NÚT THÊM VÀO GIỎ */}
               <button
                 className="inline-flex items-center gap-2 rounded-md bg-black px-4 py-2 font-semibold text-white transition hover:bg-sky-600"
-                onClick={() => addToCartLS(product, qty, size)}
+                onClick={() =>
+                  requireLogin(() => {
+                    addToCartLS(product, qty, size); // ✅ chỉ thêm vào giỏ
+                  })
+                }
               >
                 <ShoppingCart className="h-4 w-4" />
                 Thêm vào giỏ
               </button>
 
+              {/* NÚT MUA NGAY */}
               <button
                 className="rounded-md border border-black px-4 py-2 font-semibold hover:bg-black hover:text-white"
-                onClick={() => addToCartLS(product, qty, size)}
+                onClick={() =>
+                  requireLogin(() => {
+                    addToCartLS(product, qty, size); // ✅ thêm sản phẩm
+                    navigate("/gio-hang"); // ✅ chuyển sang trang giỏ hàng
+                  })
+                }
               >
                 Mua ngay
               </button>

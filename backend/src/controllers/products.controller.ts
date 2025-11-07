@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import Product from '../models/Product';
+import { Op } from "sequelize";
 
 export const getProductsByCategory = async (req: Request, res: Response) => {
   try {
@@ -83,3 +84,28 @@ export const deleteProduct = async (req: Request, res: Response) => {
   }
 };
 
+// 🔍 Tìm kiếm sản phẩm theo tên hoặc mô tả
+export const searchProducts = async (req: Request, res: Response) => {
+  try {
+    const { query } = req.query;
+
+    if (!query || typeof query !== "string") {
+      return res.status(400).json({ message: "Vui lòng nhập từ khóa tìm kiếm" });
+    }
+
+    const products = await Product.findAll({
+      where: {
+        [Op.or]: [
+          { name: { [Op.like]: `%${query}%` } },
+          { description: { [Op.like]: `%${query}%` } },
+        ],
+      },
+      order: [["created_at", "DESC"]],
+    });
+
+    const data = products.map((p) => p.get({ plain: true }));
+    return res.json({ data });
+  } catch (error: any) {
+    return res.status(500).json({ message: error.message });
+  }
+};
