@@ -7,12 +7,14 @@ import {
   Truck,
   ShieldCheck,
   Star,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
+import { addToCart as addToCartAPI } from "../../api/cart";
 import type { Product } from "../../types/product";
 import { formatVnd } from "../../utils/format";
-import SizeGuideModal from "../../components/Modals/SizeGuideModal";
 
-/* ----------------- MOCK đánh giá mẫu ------------------ */
+/* ----------------- TYPES ------------------ */
 type Review = {
   id: string;
   user: string;
@@ -21,6 +23,7 @@ type Review = {
   createdAt: string;
 };
 
+/* ----------------- MOCK DATA ------------------ */
 const REVIEWS: Review[] = [
   {
     id: "r1",
@@ -45,7 +48,7 @@ const REVIEWS: Review[] = [
   },
 ];
 
-/* ----------------- Helpers ------------------ */
+/* ----------------- HELPERS ------------------ */
 function avgRating(list: Review[]): number {
   if (!list.length) return 0;
   const sum = list.reduce((s, r) => s + r.rating, 0);
@@ -71,35 +74,23 @@ function formatDateVN(iso: string): string {
   });
 }
 
-function addToCartLS(item: Product, qty: number, size?: string) {
-  const raw = localStorage.getItem("cart");
-  const cart: {
-    product_id: number;
-    qty: number;
-    item: Product;
-    size?: string;
-  }[] = raw ? JSON.parse(raw) : [];
-
-  const idx = cart.findIndex(
-    (c) => c.product_id === item.product_id && c.size === size
-  );
-  if (idx >= 0) cart[idx].qty += qty;
-  else cart.push({ product_id: item.product_id, qty, item, size });
-
-  localStorage.setItem("cart", JSON.stringify(cart));
-  alert("🛒 Đã thêm vào giỏ!");
-}
-
 /* ----------------- MAIN COMPONENT ------------------ */
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
-
   const [size, setSize] = useState<string | undefined>();
   const [qty, setQty] = useState(1);
   const [showSizeGuide, setShowSizeGuide] = useState(false);
-  const navigate = useNavigate();
+
+  // Toast notification state
+  const [toast, setToast] = useState<{
+    show: boolean;
+    type: "success" | "error";
+    message: string;
+  }>({ show: false, type: "success", message: "" });
 
   useEffect(() => {
     async function fetchProduct() {
@@ -109,6 +100,7 @@ export default function ProductDetail() {
         setProduct(data?.data || data);
       } catch (err) {
         console.error("Lỗi tải sản phẩm:", err);
+        showToast("error", "Không thể tải thông tin sản phẩm");
       } finally {
         setLoading(false);
       }
@@ -116,19 +108,84 @@ export default function ProductDetail() {
     fetchProduct();
   }, [id]);
 
+  // Toast helper
+  const showToast = (type: "success" | "error", message: string) => {
+    setToast({ show: true, type, message });
+    setTimeout(() => {
+      setToast({ show: false, type, message: "" });
+    }, 3000);
+  };
+
+  // Check login
   const requireLogin = (callback: () => void) => {
-    const user = localStorage.getItem("user");
-    if (!user) {
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
       if (
         window.confirm(
           "⚠️ Bạn cần đăng nhập để tiếp tục. Bạn có muốn chuyển đến trang đăng nhập không?"
         )
       ) {
-        navigate("/");
+        navigate("/dang-nhap");
       }
-      return;
+      return false;
     }
     callback();
+    return true;
+  };
+
+  // Add to cart function with validation
+  const addToCart = async (buyNow: boolean = false) => {
+    // Validate size selection
+    if (!size) {
+      showToast("error", "⚠️ Vui lòng chọn kích thước!");
+      return;
+    }
+
+    if (!product) {
+      showToast("error", "❌ Không tìm thấy sản phẩm!");
+      return;
+    }
+
+    // Check if user is logged in
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      showToast("error", "⚠️ Vui lòng đăng nhập để thêm vào giỏ!");
+      setTimeout(() => navigate("/dang-nhap"), 1000);
+      return;
+    }
+
+    try {
+      // Call API helper
+      const result = await addToCartAPI(product.product_id, qty, size);
+
+      if (result) {
+        // Show success message
+        showToast("success", `🛒 Đã thêm ${qty} sản phẩm vào giỏ!`);
+
+        // Dispatch custom event to update cart count in other components
+        window.dispatchEvent(new Event("cartUpdated"));
+
+        // Navigate to cart if "Buy Now"
+        if (buyNow) {
+          setTimeout(() => {
+            navigate("/gio-hang");
+          }, 500);
+        }
+      } else {
+        showToast("error", "❌ Không thể thêm vào giỏ. Vui lòng thử lại!");
+      }
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      const errorMsg =
+        error instanceof Error && error.message === "Chưa đăng nhập"
+          ? "⚠️ Vui lòng đăng nhập để thêm vào giỏ!"
+          : "❌ Có lỗi xảy ra. Vui lòng thử lại!";
+      showToast("error", errorMsg);
+
+      if (error instanceof Error && error.message === "Chưa đăng nhập") {
+        setTimeout(() => navigate("/dang-nhap"), 1000);
+      }
+    }
   };
 
   const mainImg = product?.image_url;
@@ -136,21 +193,56 @@ export default function ProductDetail() {
     ? mainImg
     : `http://localhost:5000${mainImg || ""}`;
 
-  if (loading)
+  if (loading) {
     return (
-      <div className="py-20 text-center text-neutral-600">Đang tải...</div>
-    );
-
-  if (!product)
-    return (
-      <div className="py-20 text-center text-red-600">
-        Không tìm thấy sản phẩm
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto"></div>
+          <p className="mt-4 text-neutral-600">Đang tải...</p>
+        </div>
       </div>
     );
+  }
 
-  /* ---------------- Render ---------------- */
+  if (!product) {
+    return (
+      <div className="py-20 text-center">
+        <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+        <h2 className="text-xl font-bold text-red-600">
+          Không tìm thấy sản phẩm
+        </h2>
+        <button
+          onClick={() => navigate("/")}
+          className="mt-4 px-6 py-2 bg-black text-white rounded-md hover:bg-neutral-800"
+        >
+          Về trang chủ
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-gradient-to-b from-amber-50 to-amber-100">
+    <div className="bg-gradient-to-b from-amber-50 to-amber-100 min-h-screen">
+      {/* Toast Notification */}
+      {toast.show && (
+        <div className="fixed top-4 right-4 z-50 animate-slide-in">
+          <div
+            className={`flex items-center gap-3 px-6 py-3 rounded-lg shadow-lg ${
+              toast.type === "success"
+                ? "bg-green-500 text-white"
+                : "bg-red-500 text-white"
+            }`}
+          >
+            {toast.type === "success" ? (
+              <CheckCircle className="h-5 w-5" />
+            ) : (
+              <XCircle className="h-5 w-5" />
+            )}
+            <span className="font-medium">{toast.message}</span>
+          </div>
+        </div>
+      )}
+
       <div className="mx-auto w-full max-w-6xl px-3 py-6 lg:px-0">
         <div className="grid gap-5 md:grid-cols-2">
           {/* LEFT: IMAGE */}
@@ -161,6 +253,10 @@ export default function ProductDetail() {
                   src={imageUrl}
                   alt={product.name}
                   className="max-h-full max-w-full object-contain"
+                  onError={(e) => {
+                    e.currentTarget.src =
+                      "https://via.placeholder.com/400x400?text=No+Image";
+                  }}
                 />
               </div>
             </div>
@@ -179,7 +275,7 @@ export default function ProductDetail() {
             {/* SIZE */}
             <div className="mt-4">
               <div className="text-sm font-medium">
-                Kích thước:
+                Kích thước: <span className="text-red-500">*</span>
                 <button
                   type="button"
                   onClick={() => setShowSizeGuide(true)}
@@ -194,71 +290,77 @@ export default function ProductDetail() {
                     key={s}
                     onClick={() => setSize(s)}
                     className={[
-                      "min-w-10 rounded border px-3 py-1.5 text-sm",
+                      "min-w-10 rounded border px-3 py-1.5 text-sm font-medium transition-all",
                       size === s
-                        ? "border-black bg-black text-white"
-                        : "border-neutral-300 bg-white hover:border-neutral-500",
+                        ? "border-black bg-black text-white shadow-md scale-105"
+                        : "border-neutral-300 bg-white hover:border-neutral-500 hover:shadow",
                     ].join(" ")}
                   >
                     {s}
                   </button>
                 ))}
               </div>
+              {!size && (
+                <p className="mt-1 text-xs text-red-500">
+                  * Bạn chưa chọn kích thước
+                </p>
+              )}
             </div>
 
-            {/* QTY + BUTTONS */}
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              <div className="flex items-center rounded-md border border-neutral-300">
+            {/* QTY */}
+            <div className="mt-4">
+              <div className="text-sm font-medium mb-2">Số lượng:</div>
+              <div className="flex items-center rounded-md border border-neutral-300 w-fit">
                 <button
-                  className="grid h-9 w-9 place-content-center hover:bg-neutral-50"
+                  className="grid h-9 w-9 place-content-center hover:bg-neutral-100 transition-colors disabled:opacity-50"
                   onClick={() => setQty((q) => Math.max(1, q - 1))}
+                  disabled={qty <= 1}
                 >
                   <Minus className="h-4 w-4" />
                 </button>
                 <input
+                  type="number"
+                  min="1"
                   value={qty}
-                  onChange={(e) =>
-                    setQty(Math.max(1, Number(e.target.value) || 1))
-                  }
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value) || 1;
+                    setQty(Math.max(1, val));
+                  }}
                   className="h-9 w-14 border-x border-neutral-300 text-center outline-none"
                 />
                 <button
-                  className="grid h-9 w-9 place-content-center hover:bg-neutral-50"
+                  className="grid h-9 w-9 place-content-center hover:bg-neutral-100 transition-colors"
                   onClick={() => setQty((q) => q + 1)}
                 >
                   <Plus className="h-4 w-4" />
                 </button>
               </div>
+            </div>
 
-              {/* NÚT THÊM VÀO GIỎ */}
+            {/* BUTTONS */}
+            <div className="mt-6 flex flex-col gap-3">
+              {/* THÊM VÀO GIỎ */}
               <button
-                className="inline-flex items-center gap-2 rounded-md bg-black px-4 py-2 font-semibold text-white transition hover:bg-sky-600"
-                onClick={() =>
-                  requireLogin(() => {
-                    addToCartLS(product, qty, size); // ✅ chỉ thêm vào giỏ
-                  })
-                }
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-black px-6 py-3 font-semibold text-white transition hover:bg-neutral-800 disabled:opacity-50"
+                onClick={() => requireLogin(() => addToCart(false))}
+                disabled={!size}
               >
-                <ShoppingCart className="h-4 w-4" />
+                <ShoppingCart className="h-5 w-5" />
                 Thêm vào giỏ
               </button>
 
-              {/* NÚT MUA NGAY */}
+              {/* MUA NGAY */}
               <button
-                className="rounded-md border border-black px-4 py-2 font-semibold hover:bg-black hover:text-white"
-                onClick={() =>
-                  requireLogin(() => {
-                    addToCartLS(product, qty, size); // ✅ thêm sản phẩm
-                    navigate("/gio-hang"); // ✅ chuyển sang trang giỏ hàng
-                  })
-                }
+                className="rounded-md border-2 border-black px-6 py-3 font-semibold hover:bg-black hover:text-white transition disabled:opacity-50"
+                onClick={() => requireLogin(() => addToCart(true))}
+                disabled={!size}
               >
                 Mua ngay
               </button>
             </div>
 
             {/* Store info */}
-            <div className="mt-4 flex flex-wrap items-center gap-5 text-sm text-neutral-600">
+            <div className="mt-6 flex flex-col gap-3 text-sm text-neutral-600 border-t pt-4">
               <span className="inline-flex items-center gap-2">
                 <Truck className="h-4 w-4" /> Miễn phí vận chuyển đơn từ 299K
               </span>
@@ -269,7 +371,7 @@ export default function ProductDetail() {
           </section>
         </div>
 
-        {/* ----------------- TABS ----------------- */}
+        {/* TABS */}
         <Tabs className="mt-6">
           <Tab title="MÔ TẢ">
             <div className="rounded-xl border border-neutral-200 bg-white p-5">
@@ -300,7 +402,7 @@ export default function ProductDetail() {
           </Tab>
         </Tabs>
 
-        {/* ----------------- REVIEWS ----------------- */}
+        {/* REVIEWS */}
         <section className="mt-6 rounded-xl border border-neutral-200 bg-white p-5">
           <div className="grid gap-6 md:grid-cols-[260px,1fr]">
             <div>
@@ -322,7 +424,9 @@ export default function ProductDetail() {
               <ul className="mt-4 space-y-2 text-sm">
                 {([5, 4, 3, 2, 1] as const).map((s) => {
                   const count = countByStar(REVIEWS)[s];
-                  const percent = Math.round((count / REVIEWS.length) * 100);
+                  const percent = REVIEWS.length
+                    ? Math.round((count / REVIEWS.length) * 100)
+                    : 0;
                   return (
                     <li key={s} className="flex items-center gap-2">
                       <div className="w-8 text-right">{s}★</div>
@@ -369,32 +473,34 @@ export default function ProductDetail() {
       </div>
 
       {/* SIZE GUIDE MODAL */}
-      <SizeGuideModal
-        open={showSizeGuide}
-        onClose={() => setShowSizeGuide(false)}
-        title={`Bảng size ${product.name}`}
-        src="https://cdn.hstatic.net/products/1000253775/polo-regular_e5cb6669ccc243d09ba2d0ae4fdb6143_master.png"
-      />
+      {showSizeGuide && (
+        <SizeGuideModal
+          onClose={() => setShowSizeGuide(false)}
+          title={`Bảng size ${product.name}`}
+        />
+      )}
     </div>
   );
 }
 
-/* ---------------- COMPONENT PHỤ ---------------- */
-import type { ReactNode, ReactElement } from "react";
-
-type TabProps = { title: string; children: ReactNode };
+/* ---------------- SUB COMPONENTS ---------------- */
+type TabElement = React.ReactElement<{
+  title: string;
+  children: React.ReactNode;
+}>;
 
 function Tabs({
   children,
   className = "",
 }: {
-  children: ReactNode;
+  children: React.ReactNode;
   className?: string;
 }) {
+  const [idx, setIdx] = useState(0);
   const items = (
     Array.isArray(children) ? children : [children]
-  ) as ReactElement<TabProps>[];
-  const [idx, setIdx] = useState(0);
+  ) as TabElement[];
+
   return (
     <div className={className}>
       <div className="flex gap-2">
@@ -403,7 +509,7 @@ function Tabs({
             key={i}
             onClick={() => setIdx(i)}
             className={[
-              "rounded-t-lg border px-3 py-2 text-sm font-semibold",
+              "rounded-t-lg border px-4 py-2 text-sm font-semibold transition-colors",
               i === idx
                 ? "border-neutral-200 border-b-white bg-white"
                 : "border-transparent bg-neutral-100 hover:bg-neutral-200",
@@ -420,7 +526,7 @@ function Tabs({
   );
 }
 
-function Tab({ children }: TabProps) {
+function Tab({ children }: { title: string; children: React.ReactNode }) {
   return <div className="p-5">{children}</div>;
 }
 
@@ -431,6 +537,10 @@ function ImgPanel({ src, alt }: { src: string; alt: string }) {
         src={src}
         alt={alt}
         className="mx-auto w-full max-w-4xl rounded-lg border"
+        onError={(e) => {
+          e.currentTarget.src =
+            "https://via.placeholder.com/800x600?text=Image+Not+Found";
+        }}
       />
     </div>
   );
@@ -447,6 +557,43 @@ function StarRow({ stars }: { stars: number }) {
           }`}
         />
       ))}
+    </div>
+  );
+}
+
+function SizeGuideModal({
+  onClose,
+  title,
+}: {
+  onClose: () => void;
+  title: string;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="relative max-w-4xl w-full bg-white rounded-lg p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-neutral-500 hover:text-black"
+        >
+          <XCircle className="h-6 w-6" />
+        </button>
+        <h2 className="text-xl font-bold mb-4">{title}</h2>
+        <img
+          src="https://cdn.hstatic.net/products/1000253775/polo-regular_e5cb6669ccc243d09ba2d0ae4fdb6143_master.png"
+          alt="Size guide"
+          className="w-full rounded-lg"
+          onError={(e) => {
+            e.currentTarget.src =
+              "https://via.placeholder.com/800x600?text=Size+Guide";
+          }}
+        />
+      </div>
     </div>
   );
 }
