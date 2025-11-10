@@ -10,17 +10,16 @@ import { authenticateToken } from "../middleware/auth.middleware"; // Import mid
 
 const router = Router();
 
-// ⭐ Tất cả routes đều cần authenticate
+// routes đều cần authenticate
 router.use(authenticateToken);
 
 // Lấy giỏ hàng của user hiện tại (từ token)
-router.get("/", getCartByUser); // ⭐ Đổi từ /:userId → /
-
+router.get("/", getCartByUser); // 
 // Thêm sản phẩm vào giỏ
 router.post("/", addToCart);
 
 // Cập nhật số lượng
-router.patch("/:id", updateCartItem); // ⭐ Đổi PUT → PATCH cho đúng convention
+router.patch("/:id", updateCartItem); 
 
 // Xóa sản phẩm khỏi giỏ
 router.delete("/:id", removeCartItem);

@@ -11,8 +11,14 @@ export const createOrder = async (req: Request, res: Response) => {
   const t = await Order.sequelize?.transaction();
 
   try {
+    // Lấy user_id từ req.user (đã được set bởi authenticateToken middleware)
+    const user_id = req.user?.user_id;
+    
+    if (!user_id) {
+      return res.status(401).json({ message: "Không tìm thấy thông tin người dùng" });
+    }
+
     const {
-      user_id,
       full_name,
       phone,
       address,
@@ -90,14 +96,8 @@ export const createOrder = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * Lấy danh sách đơn hàng (có thể lọc theo user)
- * GET /api/v1/orders?user_id=123
- */
-/**
- * Lấy danh sách đơn hàng (có thể lọc theo user)
- * GET /api/v1/orders?user_id=123
- */
+
+ 
 export const getAllOrders = async (req: Request, res: Response) => {
   try {
     let where: any = {};
@@ -132,7 +132,7 @@ export const getAllOrders = async (req: Request, res: Response) => {
 
 /**
  * Lấy chi tiết 1 đơn hàng
- * GET /api/v1/orders/:id
+
  */
 export const getOrderById = async (req: Request, res: Response) => {
   try {
@@ -155,8 +155,8 @@ export const getOrderById = async (req: Request, res: Response) => {
 };
 
 /**
- * Cập nhật trạng thái đơn hàng
- * PATCH /api/v1/orders/:id/status
+  Cập nhật trạng thái đơn hàng
+ 
  */
 export const updateOrderStatus = async (req: Request, res: Response) => {
   try {
