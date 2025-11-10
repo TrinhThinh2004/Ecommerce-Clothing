@@ -3,52 +3,78 @@ import OrderItem from "../models/OrderItem";
 import Product from "../models/Product";
 
 /**
- * Lấy toàn bộ order items
- * GET /api/v1/order-items
+ lấy tất cả order items 
  */
-export const getAllOrderItems = async (_req: Request, res: Response) => {
+export const getAllOrderItems = async (req: Request, res: Response) => {
   try {
+    const where: any = {};
+    if (req.query.order_id) where.order_id = req.query.order_id;
+
     const items = await OrderItem.findAll({
+      where,
       include: [{ model: Product, as: "product" }],
+      order: [["created_at", "DESC"]],
     });
-    res.json({ data: items });
+
+    res.json({ success: true, data: items });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Lỗi lấy danh sách order items" });
+    console.error("❌ Lỗi getAllOrderItems:", err);
+    res.status(500).json({ success: false, message: "Lỗi lấy danh sách order items" });
   }
 };
 
 /**
- * Lấy item theo ID
- * GET /api/v1/order-items/:id
+ lấy  order items theo ID
  */
 export const getOrderItemById = async (req: Request, res: Response) => {
   try {
     const item = await OrderItem.findByPk(req.params.id, {
       include: [{ model: Product, as: "product" }],
     });
+
     if (!item)
-      return res.status(404).json({ message: "Không tìm thấy order item" });
-    res.json({ data: item });
+      return res.status(404).json({ success: false, message: "Không tìm thấy order item" });
+
+    res.json({ success: true, data: item });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Lỗi lấy order item" });
+    console.error("❌ Lỗi getOrderItemById:", err);
+    res.status(500).json({ success: false, message: "Lỗi lấy order item" });
   }
 };
 
 /**
- * Xóa item
- * DELETE /api/v1/order-items/:id
+ cập nhât order items 
+ */
+export const updateOrderItem = async (req: Request, res: Response) => {
+  try {
+    const { quantity, size } = req.body;
+
+    const item = await OrderItem.findByPk(req.params.id);
+    if (!item)
+      return res.status(404).json({ success: false, message: "Không tìm thấy order item" });
+
+    await item.update({ quantity, size });
+    res.json({ success: true, message: "Cập nhật thành công", data: item });
+  } catch (err) {
+    console.error("❌ Lỗi updateOrderItem:", err);
+    res.status(500).json({ success: false, message: "Lỗi cập nhật order item" });
+  }
+};
+
+/**
+ * Xóa order item
+ 
  */
 export const deleteOrderItem = async (req: Request, res: Response) => {
   try {
     const item = await OrderItem.findByPk(req.params.id);
     if (!item)
-      return res.status(404).json({ message: "Không tìm thấy order item" });
+      return res.status(404).json({ success: false, message: "Không tìm thấy order item" });
+
     await item.destroy();
-    res.json({ message: "Xóa item thành công" });
+    res.json({ success: true, message: "Xóa item thành công" });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Lỗi xóa order item" });
+    console.error("❌ Lỗi deleteOrderItem:", err);
+    res.status(500).json({ success: false, message: "Lỗi xóa order item" });
   }
 };

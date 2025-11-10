@@ -13,7 +13,6 @@ import {
 } from "../../api/cart";
 import axiosInstance from "../../api/client";
 
-/* ====== Class CSS dùng chung cho input ====== */
 const INPUT_CLS =
   "h-11 w-full rounded-md border border-neutral-300 px-3 text-sm outline-none focus:border-black";
 
@@ -38,27 +37,26 @@ export default function Cart() {
     amount: 0,
   });
 
-  /* ====== Lấy dữ liệu giỏ hàng từ API ====== */
+  /* ========= Load Cart ========= */
   const loadCart = async () => {
     setLoading(true);
     try {
       const data: CartItem[] = await fetchCart();
       const mapped = data.map(mapCartItem);
-      console.log("🛒 Giỏ hàng sau khi map:", mapped);
+      console.log("🛒 Cart loaded:", mapped);
       setItems(mapped);
     } catch (err) {
-      console.error("Lỗi khi tải giỏ hàng:", err);
+      console.error("Error loading cart:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  /* ====== Tự động load khi mở trang + reload khi event cartUpdated ====== */
   useEffect(() => {
     loadCart();
 
     const handleCartUpdate = () => {
-      console.log("🔄 Nhận sự kiện cập nhật giỏ hàng, tải lại...");
+      console.log("🔄 Cart updated event, reloading...");
       loadCart();
     };
 
@@ -68,26 +66,28 @@ export default function Cart() {
     };
   }, []);
 
-  /* ====== Tính toán giá trị giỏ hàng ====== */
+  /* ========= Calculations ========= */
   const subTotal = useMemo(
     () => items.reduce((s, it) => s + it.item.price * it.qty, 0),
     [items]
   );
+  
   const ship = useMemo(
     () => (subTotal >= 299000 || applied.code === "FREESHIP" ? 0 : 30000),
     [subTotal, applied]
   );
+  
   const discount = applied.amount;
   const grand = Math.max(0, subTotal + ship - discount);
 
-  /* ====== Thay đổi số lượng sản phẩm ====== */
+  /* ========= Handlers ========= */
   const changeQty = async (cart_id: number, delta: number) => {
     const target = items.find((it) => it.cart_id === cart_id);
     if (!target) return;
 
     const newQty = Math.max(1, target.qty + delta);
 
-    // Cập nhật tạm thời trên UI (optimistic update)
+    // Optimistic update
     setItems((prev) =>
       prev.map((it) => (it.cart_id === cart_id ? { ...it, qty: newQty } : it))
     );
@@ -95,40 +95,36 @@ export default function Cart() {
     try {
       const apiItem = await updateCartItem(cart_id, newQty);
       if (!apiItem) {
-        console.warn("Cập nhật số lượng thất bại:", cart_id);
-        loadCart(); // Hoàn tác
+        console.warn("Update failed:", cart_id);
+        loadCart();
       }
     } catch (err) {
-      console.error("Lỗi khi cập nhật số lượng:", err);
+      console.error("Error updating quantity:", err);
       loadCart();
     }
   };
 
-  /* ====== Xóa sản phẩm khỏi giỏ ====== */
   const removeItemHandler = async (cart_id: number) => {
-    if (!window.confirm("Bạn có chắc muốn xóa sản phẩm này khỏi giỏ hàng?")) {
+    if (!window.confirm("Bạn có chắc muốn xóa sản phẩm này?")) {
       return;
     }
 
-    // Xóa tạm thời trên UI
     setItems((prev) => prev.filter((it) => it.cart_id !== cart_id));
 
     try {
       const success = await removeCartItem(cart_id);
       if (!success) {
-        console.warn("Xóa sản phẩm thất bại:", cart_id);
-        loadCart(); // Hoàn tác
+        console.warn("Remove failed:", cart_id);
+        loadCart();
       } else {
-        // Cập nhật lại toàn bộ app (vd: icon giỏ hàng)
         window.dispatchEvent(new Event("cartUpdated"));
       }
     } catch (err) {
-      console.error("Lỗi khi xóa sản phẩm:", err);
+      console.error("Error removing item:", err);
       loadCart();
     }
   };
 
-  /* ====== Áp dụng mã giảm giá ====== */
   const applyVoucher = () => {
     const code = voucher.trim().toUpperCase();
     if (!code) {
@@ -138,68 +134,112 @@ export default function Cart() {
 
     if (code === "SEP30") {
       setApplied({ code, amount: 30000 });
-      alert("✅ Đã áp dụng mã giảm 30.000₫");
+      alert("✅ Đã áp dụng mã giảm 30,000₫");
     } else if (code === "FREESHIP") {
       setApplied({ code, amount: 0 });
-      alert("✅ Đã áp dụng mã miễn phí vận chuyển");
+      alert("✅ Đã áp dụng mã miễn phí ship");
     } else {
       setApplied({ amount: 0 });
-      alert("❌ Mã không hợp lệ. Thử mã: SEP30 hoặc FREESHIP");
+      alert("❌ Mã không hợp lệ. Thử: SEP30 hoặc FREESHIP");
     }
   };
 
-  /* ====== Xử lý đặt hàng ====== */
+  /* ========= PLACE ORDER - FIXED ========= */
   const placeOrder = async () => {
-    if (!items.length) {
-      alert("⚠️ Giỏ hàng trống. Vui lòng thêm sản phẩm trước khi đặt hàng.");
+  // Validation
+  if (!items.length) {
+    alert("⚠️ Giỏ hàng trống.");
+    return;
+  }
+
+  if (!name || !phone || !address || !city) {
+    alert("⚠️ Vui lòng điền đầy đủ thông tin giao hàng.");
+    return;
+  }
+
+  const phoneRegex = /^[0-9]{10,11}$/;
+  if (!phoneRegex.test(phone)) {
+    alert("⚠️ Số điện thoại không hợp lệ (10-11 số).");
+    return;
+  }
+
+  try {
+    // Lấy token từ localStorage
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      alert("⚠️ Vui lòng đăng nhập để đặt hàng.");
+      navigate("/dang-nhap");
       return;
     }
 
-    if (!name || !phone || !address || !city) {
-      alert("⚠️ Vui lòng điền đầy đủ thông tin giao hàng.");
-      return;
+    // Format data theo backend - KHÔNG cần gửi user_id, backend sẽ lấy từ token
+    const orderData = {
+      full_name: name.trim(),
+      phone: phone.trim(),
+      address: address.trim(),
+      city: city.trim(),
+      district: district.trim() || undefined,
+      ward: ward.trim() || undefined,
+      note: note.trim() || undefined,
+      voucher_code: applied.code || undefined,
+      discount_amount: discount,
+      shipping_fee: ship,
+      total_price: grand,
+      payment_method: pay,
+      items: items.map((it) => ({
+        product_id: it.product_id,
+        quantity: it.qty,
+        size: it.size || undefined,
+        unit_price: it.item.price,
+      })),
+    };
+
+    console.log("📦 Sending order data:", orderData);
+
+    // Bỏ Authorization header thủ công, để interceptor xử lý
+    const res = await axiosInstance.post("/api/v1/orders", orderData);
+
+    console.log("📥 Order response:", res.data);
+
+    if (res.data.message?.includes("thành công") || res.data.data) {
+      setItems([]);
+      window.dispatchEvent(new Event("cartUpdated"));
+
+      alert(
+        `🎉 Đặt hàng thành công!\n\nMã đơn: #${res.data.data?.order_id || "N/A"}\nTổng thanh toán: ${formatVnd(
+          grand
+        )}\n\nCảm ơn bạn đã mua hàng!`
+      );
+
+      navigate("/");
+    } else {
+      alert("❌ Đặt hàng thất bại: " + (res.data.message || "Lỗi không xác định"));
     }
+  } catch (err: unknown) {
+    console.error("❌ Order error:", err);
 
-    const phoneRegex = /^[0-9]{10}$/;
-    if (!phoneRegex.test(phone)) {
-      alert("⚠️ Số điện thoại không hợp lệ (phải có 10 số).");
-      return;
-    }
-
-    try {
-      const res = await axiosInstance.post("/api/v1/orders", {
-        full_name: name,
-        phone,
-        address,
-        city,
-        district,
-        ward,
-        note,
-        payment_method: pay,
-        voucher_code: applied.code ?? "",
-        items: items.map((it) => ({
-          product_id: it.product_id,
-          quantity: it.qty,
-          size: it.size,
-          price_snapshot: it.item.price,
-        })),
-      });
-
-      if (res.data.success) {
-        alert(`🎉 Đặt hàng thành công!\nTổng thanh toán: ${formatVnd(grand)}`);
-        setItems([]);
-        window.dispatchEvent(new Event("cartUpdated"));
-        navigate("/");
+    // Kiểm tra nếu là AxiosError
+    if (typeof err === "object" && err !== null && "response" in err) {
+      const e = err as { response?: { data?: { message?: string }; status?: number }; message?: string };
+      const errorMsg = e.response?.data?.message || e.message || "Lỗi không xác định";
+      const status = e.response?.status;
+      
+      if (status === 401) {
+        alert("⚠️ Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+        navigate("/dang-nhap");
       } else {
-        alert("❌ Đặt hàng thất bại: " + res.data.message);
+        alert(`❌ Đã xảy ra lỗi khi đặt hàng:\n${errorMsg}\n\nVui lòng thử lại.`);
       }
-    } catch (err) {
-      console.error("Lỗi khi đặt hàng:", err);
-      alert("❌ Đã xảy ra lỗi khi đặt hàng. Vui lòng thử lại.");
+    } else if (err instanceof Error) {
+      alert(`❌ Đã xảy ra lỗi khi đặt hàng:\n${err.message}\n\nVui lòng thử lại.`);
+    } else {
+      alert("❌ Đã xảy ra lỗi không xác định khi đặt hàng. Vui lòng thử lại.");
     }
-  };
+  }
+};
 
-  /* ====== Giao diện khi đang tải ====== */
+
+  /* ========= RENDER ========= */
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -211,13 +251,12 @@ export default function Cart() {
     );
   }
 
-  /* ====== Giao diện chính ====== */
   return (
     <div className="bg-gradient-to-b from-amber-50 to-amber-100 pb-28">
       <div className="mx-auto w-full max-w-6xl px-3 py-6 lg:px-0">
         <h1 className="mb-4 text-2xl font-extrabold">Giỏ hàng</h1>
         <div className="grid gap-6 lg:grid-cols-[1fr,0.9fr]">
-          {/* BÊN TRÁI: Thông tin người nhận & thanh toán */}
+          {/* LEFT: Shipping Info */}
           <section className="space-y-4">
             <Card title="Thông tin giao hàng">
               <div className="grid gap-3">
@@ -229,7 +268,7 @@ export default function Cart() {
                   required
                 />
                 <input
-                  placeholder="Số điện thoại *"
+                  placeholder="Số điện thoại * (10-11 số)"
                   className={INPUT_CLS}
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
@@ -263,9 +302,9 @@ export default function Cart() {
                     onChange={(e) => setWard(e.target.value)}
                   />
                 </div>
-                <input
+                <textarea
                   placeholder="Ghi chú cho đơn hàng (nếu có)"
-                  className={INPUT_CLS}
+                  className={`${INPUT_CLS} min-h-[80px] resize-none`}
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                 />
@@ -289,14 +328,14 @@ export default function Cart() {
                 <PayRow
                   checked={pay === "momo"}
                   onChange={() => setPay("momo")}
-                  title="Thanh toán qua MoMo"
+                  title="Thanh toán MoMo"
                   icon={<Wallet className="h-5 w-5" />}
                 />
               </div>
             </Card>
           </section>
 
-          {/* BÊN PHẢI: Danh sách sản phẩm + tóm tắt đơn hàng */}
+          {/* RIGHT: Cart Items */}
           <section className="space-y-4">
             <Card>
               {items.length === 0 ? (
@@ -304,13 +343,10 @@ export default function Cart() {
               ) : (
                 <ul className="divide-y">
                   {items.map((it) => {
-                    // Xử lý URL hình ảnh
                     const imageUrl = it.item.image
                       ? it.item.image.startsWith("http")
                         ? it.item.image
-                        : `http://localhost:5000${
-                            it.item.image.startsWith("/") ? "" : "/"
-                          }${it.item.image}`
+                        : `http://localhost:5000${it.item.image.startsWith("/") ? "" : "/"}${it.item.image}`
                       : "https://via.placeholder.com/80x80?text=No+Image";
 
                     return (
@@ -340,8 +376,7 @@ export default function Cart() {
                             {it.item.name}
                           </Link>
                           <div className="mt-1 text-sm text-neutral-600">
-                            Size: {it.size ?? "-"} • Giá:{" "}
-                            {formatVnd(it.item.price)}
+                            Size: {it.size ?? "-"} • Giá: {formatVnd(it.item.price)}
                           </div>
                           <div className="mt-2 flex items-center gap-3">
                             <Qty
@@ -352,7 +387,7 @@ export default function Cart() {
                             <button
                               onClick={() => removeItemHandler(it.cart_id)}
                               className="rounded-md p-2 text-neutral-600 hover:bg-neutral-100"
-                              title="Xóa sản phẩm"
+                              title="Xóa"
                             >
                               <Trash2 className="h-4 w-4" />
                             </button>
@@ -409,7 +444,7 @@ export default function Cart() {
         </div>
       </div>
 
-      {/* THANH ĐẶT HÀNG DƯỚI CÙNG */}
+      {/* Bottom Bar */}
       <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/70">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-3 py-3 lg:px-0">
           <div className="text-sm text-neutral-600">
@@ -438,7 +473,7 @@ export default function Cart() {
   );
 }
 
-/* ====== COMPONENT PHỤ ====== */
+/* ========= SUB COMPONENTS ========= */
 function Card({ children, title }: { children: ReactNode; title?: string }) {
   return (
     <section className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
@@ -448,7 +483,6 @@ function Card({ children, title }: { children: ReactNode; title?: string }) {
   );
 }
 
-/* ====== Component tăng giảm số lượng ====== */
 function Qty({
   qty,
   onDec,

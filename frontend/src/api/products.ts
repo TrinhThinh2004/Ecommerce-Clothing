@@ -3,7 +3,7 @@ import type { Product } from "../types/product";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-/// ✅ Lấy tất cả sản phẩm và xáo trộn
+///Lấy tất cả sản phẩm và xáo trộn
 export async function fetchProducts(): Promise<Product[]> {
   try {
     const res = await axiosInstance.get(`${API_URL}/api/v1/products`);
@@ -16,7 +16,7 @@ export async function fetchProducts(): Promise<Product[]> {
       ? res.data.data
       : [];
 
-    // ✅ Xáo trộn mảng sản phẩm ngẫu nhiên (Fisher-Yates shuffle)
+    //Xáo trộn mảng sản phẩm ngẫu nhiên 
     for (let i = data.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [data[i], data[j]] = [data[j], data[i]];

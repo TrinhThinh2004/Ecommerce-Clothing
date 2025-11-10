@@ -5,7 +5,7 @@ import Product from "../models/Product";
 
 const router = Router();
 
-// Lấy tất cả danh mục (nếu cần)
+//  tất cả danh mục 
 router.get("/", async (req, res) => {
   try {
     const categories = await Category.findAll();
@@ -15,7 +15,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-// ✅ Lấy 1 danh mục theo ID và bao gồm sản phẩm
+//  Lấy 1 danh mục theo ID 
 router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
