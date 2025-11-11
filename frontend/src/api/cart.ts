@@ -31,7 +31,7 @@ const getToken = (): string => {
   return token;
 };
 
-/* ========= Map CartItem -> LocalCartItem (định dạng cho frontend) ========= */
+/* ========= LocalCartItem cho frontend ========= */
 export type LocalCartItem = {
   cart_id: number;
   product_id: number;
@@ -46,11 +46,16 @@ export type LocalCartItem = {
 };
 
 export const mapCartItem = (it: CartItem): LocalCartItem => {
-  // Nếu backend chỉ trả relative path (uploads/products/...)
-  const rawImage = it.product?.image_url ?? "";
-  const imageUrl = rawImage.startsWith("http")
-    ? rawImage
-    : `http://localhost:5000/${rawImage}`; // ✅ ghép host
+  const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:5000";
+  const normalizedBaseUrl = API_BASE_URL.replace(/\/+$/, "");
+
+  const rawImage =
+    it.product?.image_url ?? (it.product as { image?: string })?.image ?? "";
+
+  const imageUrl =
+    rawImage && !rawImage.startsWith("http")
+      ? `${normalizedBaseUrl}${rawImage.startsWith("/") ? "" : "/"}${rawImage}`
+      : rawImage;
 
   return {
     cart_id: it.cart_id,
@@ -66,8 +71,6 @@ export const mapCartItem = (it: CartItem): LocalCartItem => {
   };
 };
 
-
-
 /* ========= API: Lấy danh sách giỏ hàng ========= */
 export const fetchCart = async (): Promise<CartItem[]> => {
   try {
@@ -75,7 +78,6 @@ export const fetchCart = async (): Promise<CartItem[]> => {
     const res = await axiosInstance.get<CartResponse>("/api/v1/cart", {
       headers: { Authorization: `Bearer ${token}` },
     });
-    console.log("📦 Cart data:", res.data.cart);
     return res.data.cart || [];
   } catch (err) {
     console.error("fetchCart error:", err);
@@ -96,13 +98,7 @@ export const addToCart = async (
       { product_id, quantity, size },
       { headers: { Authorization: `Bearer ${token}` } }
     );
-
-    console.log("➕ Add to cart response:", res.data);
-
-    if (!res.data.success) {
-      console.error("addToCart failed:", res.data.message);
-      return null;
-    }
+    if (!res.data.success) return null;
     return res.data.item || null;
   } catch (err) {
     console.error("addToCart error:", err);
@@ -112,7 +108,7 @@ export const addToCart = async (
 
 /* ========= API: Cập nhật số lượng ========= */
 export const updateCartItem = async (
-  cart_id: number, // dùng cart_id để định danh item trong giỏ
+  cart_id: number,
   quantity: number
 ): Promise<CartItem | null> => {
   try {
@@ -122,13 +118,7 @@ export const updateCartItem = async (
       { quantity },
       { headers: { Authorization: `Bearer ${token}` } }
     );
-
-    console.log("🔄 Update cart response:", res.data);
-
-    if (!res.data.success) {
-      console.error("updateCartItem failed:", res.data.message);
-      return null;
-    }
+    if (!res.data.success) return null;
     return res.data.item || null;
   } catch (err) {
     console.error("updateCartItem error:", err);
@@ -144,12 +134,23 @@ export const removeCartItem = async (cart_id: number): Promise<boolean> => {
       `/api/v1/cart/${cart_id}`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
-
-    console.log("🗑️ Remove cart response:", res.data);
-
     return res.data?.success ?? false;
   } catch (err) {
     console.error("removeCartItem error:", err);
+    return false;
+  }
+};
+
+export const clearCart = async (): Promise<boolean> => {
+  try {
+    const token = getToken();
+    const res = await axiosInstance.delete<CartResponse>("/api/v1/cart", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    console.log("🗑️ Clear cart response:", res.data);
+    return res.data.success ?? false;
+  } catch (err) {
+    console.error("clearCart error:", err);
     return false;
   }
 };

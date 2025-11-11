@@ -27,7 +27,7 @@ module.exports = {
           key: "product_id",
         },
         onUpdate: "CASCADE",
-        onDelete: "SET NULL",
+        onDelete: "CASCADE",
       },
       quantity: {
         type: Sequelize.INTEGER,

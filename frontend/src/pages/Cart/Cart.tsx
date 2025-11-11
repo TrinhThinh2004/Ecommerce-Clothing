@@ -10,6 +10,7 @@ import {
   CartItem,
   mapCartItem,
   LocalCartItem,
+  clearCart,
 } from "../../api/cart";
 import axiosInstance from "../../api/client";
 
@@ -202,6 +203,7 @@ export default function Cart() {
     console.log("📥 Order response:", res.data);
 
     if (res.data.message?.includes("thành công") || res.data.data) {
+       await clearCart();
       setItems([]);
       window.dispatchEvent(new Event("cartUpdated"));
 
@@ -343,11 +345,10 @@ export default function Cart() {
               ) : (
                 <ul className="divide-y">
                   {items.map((it) => {
-                    const imageUrl = it.item.image
-                      ? it.item.image.startsWith("http")
+                    const imageUrl =
+                      it.item.image && it.item.image.trim().length > 0
                         ? it.item.image
-                        : `http://localhost:5000${it.item.image.startsWith("/") ? "" : "/"}${it.item.image}`
-                      : "https://via.placeholder.com/80x80?text=No+Image";
+                        : "/no-image.svg";
 
                     return (
                       <li
@@ -363,8 +364,7 @@ export default function Cart() {
                             alt={it.item.name}
                             className="h-full w-full object-cover"
                             onError={(e) => {
-                              e.currentTarget.src =
-                                "https://via.placeholder.com/80x80?text=No+Image";
+                              e.currentTarget.src = "/no-image.svg";
                             }}
                           />
                         </Link>
