@@ -5,6 +5,7 @@ import {
   addToCart,
   updateCartItem,
   removeCartItem,
+  clearCart,
 } from "../controllers/cart.controller";
 import { authenticateToken } from "../middleware/auth.middleware"; // Import middleware
 
@@ -23,5 +24,5 @@ router.patch("/:id", updateCartItem);
 
 // Xóa sản phẩm khỏi giỏ
 router.delete("/:id", removeCartItem);
-
+router.delete("/",  clearCart);
 export default router;

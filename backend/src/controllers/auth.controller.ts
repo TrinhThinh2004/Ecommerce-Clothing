@@ -18,7 +18,7 @@ const generateAccessToken = (user: User): string => {
     throw new Error('Thiếu cấu hình JWT_SECRET trong biến môi trường');
   }
 
-  const expiresIn = process.env.JWT_ACCESS_EXPIRES || '15m';
+  const expiresIn = process.env.JWT_ACCESS_EXPIRES || '30m';
   return jwt.sign(payload, secret as jwt.Secret, { expiresIn } as SignOptions);
 };
 

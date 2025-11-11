@@ -8,7 +8,7 @@ import productsRouter from "./routes/products";
 import authRouter from "./routes/auth";
 import adminRouter from "./routes/admin";
 import categoryRoutes from "./routes/categorys";
-import orderItemRoutes from "./routes/orderitem";
+import orderItemRoutes from "./routes/orderItem";
 import cart from "./routes/cart";
 import orderRoutes from "./routes/order";
 dotenv.config();
@@ -36,6 +36,8 @@ app.use("/api/v1/cart", cart);
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/api/v1/orders", orderRoutes);
 app.use("/api/v1/order-items", orderItemRoutes);
+
+
 // Test kết nối database khi khởi động server 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 5000;
 app.listen(PORT, async () => {
