@@ -14,6 +14,7 @@ import {
 } from "../../api/cart";
 import axiosInstance from "../../api/client";
 
+
 const INPUT_CLS =
   "h-11 w-full rounded-md border border-neutral-300 px-3 text-sm outline-none focus:border-black";
 
@@ -146,8 +147,7 @@ export default function Cart() {
   };
 
   /* ========= PLACE ORDER - FIXED ========= */
-  const placeOrder = async () => {
-  // Validation
+ const placeOrder = async () => {
   if (!items.length) {
     alert("⚠️ Giỏ hàng trống.");
     return;
@@ -165,7 +165,6 @@ export default function Cart() {
   }
 
   try {
-    // Lấy token từ localStorage
     const token = localStorage.getItem("accessToken");
     if (!token) {
       alert("⚠️ Vui lòng đăng nhập để đặt hàng.");
@@ -173,7 +172,6 @@ export default function Cart() {
       return;
     }
 
-    // Format data theo backend - KHÔNG cần gửi user_id, backend sẽ lấy từ token
     const orderData = {
       full_name: name.trim(),
       phone: phone.trim(),
@@ -196,31 +194,67 @@ export default function Cart() {
     };
 
     console.log("📦 Sending order data:", orderData);
-
-    // Bỏ Authorization header thủ công, để interceptor xử lý
     const res = await axiosInstance.post("/api/v1/orders", orderData);
-
     console.log("📥 Order response:", res.data);
 
-    if (res.data.message?.includes("thành công") || res.data.data) {
-       await clearCart();
-      setItems([]);
-      window.dispatchEvent(new Event("cartUpdated"));
-
-      alert(
-        `🎉 Đặt hàng thành công!\n\nMã đơn: #${res.data.data?.order_id || "N/A"}\nTổng thanh toán: ${formatVnd(
-          grand
-        )}\n\nCảm ơn bạn đã mua hàng!`
-      );
-
-      navigate("/");
-    } else {
-      alert("❌ Đặt hàng thất bại: " + (res.data.message || "Lỗi không xác định"));
+    if (!res.data?.data?.order_id) {
+      alert("❌ Đặt hàng thất bại: Không có mã đơn hàng.");
+      return;
     }
+
+    const orderId = res.data.data.order_id;
+
+    // 💳 Nếu chọn VNPAY thì gọi API backend để tạo URL thanh toán
+    if (pay === "vnpay") {
+      try {
+        console.log("💳 Creating VNPay payment URL for order:", orderId, "amount:", grand);
+        
+        // Gọi API backend để tạo URL thanh toán VNPay với chữ ký hợp lệ
+        const paymentRes = await axiosInstance.post("/api/payment/create", {
+          amount: grand,
+          orderId: orderId.toString(),
+        });
+
+        console.log("📥 VNPay response:", paymentRes.data);
+
+        if (!paymentRes.data?.paymentUrl) {
+          console.error("❌ No paymentUrl in response:", paymentRes.data);
+          alert("❌ Không thể tạo URL thanh toán. Vui lòng thử lại.");
+          return;
+        }
+
+        console.log("✅ Redirecting to VNPay:", paymentRes.data.paymentUrl);
+        alert("🔁 Đang chuyển sang cổng thanh toán VNPAY...");
+        window.location.href = paymentRes.data.paymentUrl;
+        return;
+      } catch (err) {
+        console.error("❌ Error creating VNPay URL:", err);
+        if (typeof err === "object" && err !== null && "response" in err) {
+          const e = err as { response?: { data?: { message?: string }; status?: number } };
+          const errorMsg = e.response?.data?.message || "Lỗi không xác định";
+          const status = e.response?.status;
+          alert(`❌ Lỗi khi tạo URL thanh toán (${status}):\n${errorMsg}\n\nVui lòng kiểm tra cấu hình VNPay hoặc thử lại.`);
+        } else {
+          alert("❌ Lỗi khi tạo URL thanh toán. Vui lòng thử lại.");
+        }
+        return;
+      }
+    }
+
+    // ✅ Nếu không phải VNPAY thì giữ luồng cũ (COD hoặc Momo)
+    await clearCart();
+    setItems([]);
+    window.dispatchEvent(new Event("cartUpdated"));
+
+    alert(
+      `🎉 Đặt hàng thành công!\n\nMã đơn: #${orderId}\nTổng thanh toán: ${formatVnd(
+        grand
+      )}\n\nCảm ơn bạn đã mua hàng!`
+    );
+    navigate("/");
+
   } catch (err: unknown) {
     console.error("❌ Order error:", err);
-
-    // Kiểm tra nếu là AxiosError
     if (typeof err === "object" && err !== null && "response" in err) {
       const e = err as { response?: { data?: { message?: string }; status?: number }; message?: string };
       const errorMsg = e.response?.data?.message || e.message || "Lỗi không xác định";
@@ -239,6 +273,7 @@ export default function Cart() {
     }
   }
 };
+
 
 
   /* ========= RENDER ========= */
