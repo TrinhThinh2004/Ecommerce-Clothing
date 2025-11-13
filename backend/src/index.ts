@@ -11,7 +11,7 @@ import categoryRoutes from "./routes/categorys";
 import orderItemRoutes from "./routes/orderItem";
 import cart from "./routes/cart";
 import orderRoutes from "./routes/order";
-import paymentRoutes from "./routes/paymentRoutes"
+import paymentRoutes from "./routes/payment"
 dotenv.config();
 
 const app = express();
@@ -38,6 +38,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/api/v1/orders", orderRoutes);
 app.use("/api/v1/order-items", orderItemRoutes);
 app.use("/api/payment", paymentRoutes);
+
 
 // Test kết nối database khi khởi động server 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 5000;
