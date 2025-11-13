@@ -7,10 +7,11 @@ export const PATHS = {
   STORE_LOCATOR: "/he-thong-cua-hang",
   CART: "/gio-hang",
   SEARCH: "/tim-kiem",
-FASHION_NEWS: "/tin-thoi-trang", // <-- THÊM DÒNG NÀY
+FASHION_NEWS: "/tin-thoi-trang", 
   ADMIN: "/admin",
   ADMIN_ORDERS: "/admin/orders",
   ADMIN_PRODUCTS: "/admin/products",
   ADMIN_CUSTOMERS: "/admin/customers",
+  PAYMENT_RESULT: "/payment-result",
   // ADMIN_SETTINGS: "/admin/settings", ...
 } as const;

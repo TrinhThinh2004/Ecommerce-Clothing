@@ -23,6 +23,8 @@ const PrivacyPolicy = lazy(() => import("../pages/policy/PrivacyPolicy"));
 const ExchangeWarrantyPolicy = lazy(
   () => import("../pages/policy/ExchangeWarrantyPolicy")
 );
+const PaymentResult = lazy(() => import("../pages/payment/PaymentResult"));
+
 // --- Admin (lazy) ---
 const AdminDashboard = lazy(
   () => import("../pages/Admin/AdminDashboard/AdminDashboard")
@@ -75,6 +77,11 @@ export const ROUTES: RouteItem[] = [
     path: "/huong-dan-dat-hang",
     element: OrderPolicy,
     layout: { type: "public", props: { noBanner: true } },
+  },
+  { 
+    path: "/payment-result", 
+    element: PaymentResult, 
+    layout: { type: "public" , props: {noBanner: true}} ,
   },
   {
     path: "/chinh-sach-bao-mat",
