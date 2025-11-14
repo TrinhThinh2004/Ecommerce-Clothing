@@ -36,6 +36,7 @@ const AdminProducts = lazy(
 const AdminCustomers = lazy(
   () => import("../pages/Admin/AdminCustomers/AdminCustomers")
 );
+const AdminChat = lazy(() => import("../pages/Admin/AdminChat/AdminChat"));
 
 // --- Các định nghĩa Type ---
 type PublicLayoutProps = Omit<React.ComponentProps<typeof Layout>, "children">;
@@ -131,4 +132,5 @@ export const ROUTES: RouteItem[] = [
     element: AdminCustomers,
     layout: { type: "none" },
   },
+  { path: "/admin/chat", element: AdminChat, layout: { type: "none" } },
 ];

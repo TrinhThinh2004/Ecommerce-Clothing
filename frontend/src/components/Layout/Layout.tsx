@@ -1,9 +1,11 @@
 // src/components/Layout/Layout.tsx
 import type { ReactNode } from "react";
+import { useState } from "react";
 import Header from "../Header/Header";
 import Banner from "../Banner/Banner";
 import Footer from "../Footer/Footer";
 import ContactFloating from "../../components/FloatingContact/FloatingContact";
+import UserChat from "../Chat/UserChat";
 
 type Props = {
   children: ReactNode;
@@ -16,6 +18,7 @@ export default function Layout({
   noBanner = false,
   noFooter = false,
 }: Props) {
+  const [isChatOpen, setIsChatOpen] = useState(false);
   return (
     <div className="flex min-h-screen flex-col relative">
       <Header />
@@ -32,14 +35,13 @@ export default function Layout({
       <main className={noBanner ? "bg-white" : "bg-amber-50"}>
         <div className="mx-auto w-full max-w-7xl px-4 py-10 flex-1">
           {children}
-        </div>
+        </div>  
       </main>
 
-      {/* Liên hệ nổi – bám mép phải, giữa màn hình */}
-
+      <UserChat onOpenChange={setIsChatOpen} rightOffset={24} bottomOffset={96} />
       {!noFooter && <Footer />}
 
-      <ContactFloating />
+      <ContactFloating hidden={isChatOpen} placement="bottom-right" rightOffset={24} bottomOffset={24} />
     </div>
   );
 }

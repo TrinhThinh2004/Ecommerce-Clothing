@@ -14,6 +14,7 @@ type Props = {
   placement?: "right-center" | "bottom-right";
   rightOffset?: number | string;
   bottomOffset?: number | string;
+  hidden?: boolean;
 };
 
 function FacebookIcon(props: React.SVGProps<SVGSVGElement>) {
@@ -40,7 +41,9 @@ export default function FloatingContactRadix({
   placement = "right-center",
   rightOffset = 24,
   bottomOffset = 24,
+  hidden = false,
 }: Props) {
+  if (hidden) return null;
   // Tính style cố định cho trigger (nằm ngoài mọi container)
   const triggerStyle = useMemo<React.CSSProperties>(() => {
     const right =
