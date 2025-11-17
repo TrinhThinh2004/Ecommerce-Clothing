@@ -13,6 +13,7 @@ import {
   clearCart,
 } from "../../api/cart";
 import axiosInstance from "../../api/client";
+import { toast } from "react-toastify";
 
 
 const INPUT_CLS =
@@ -131,43 +132,44 @@ export default function Cart() {
     const code = voucher.trim().toUpperCase();
     if (!code) {
       setApplied({ amount: 0 });
+       toast.info("Bạn chưa nhập mã giảm giá.");
       return;
     }
 
     if (code === "SEP30") {
       setApplied({ code, amount: 30000 });
-      alert("✅ Đã áp dụng mã giảm 30,000₫");
+      toast.success("✅ Đã áp dụng mã giảm 30,000₫");
     } else if (code === "FREESHIP") {
       setApplied({ code, amount: 0 });
-      alert("✅ Đã áp dụng mã miễn phí ship");
+      toast.success("✅ Đã áp dụng mã miễn phí ship");
     } else {
       setApplied({ amount: 0 });
-      alert("❌ Mã không hợp lệ. Thử: SEP30 hoặc FREESHIP");
+      toast.error("❌ Mã không hợp lệ. Thử: SEP30 hoặc FREESHIP");
     }
   };
 
   /* ========= PLACE ORDER - FIXED ========= */
  const placeOrder = async () => {
   if (!items.length) {
-    alert("⚠️ Giỏ hàng trống.");
+    toast.warning("⚠️ Giỏ hàng trống.");
     return;
   }
 
   if (!name || !phone || !address || !city) {
-    alert("⚠️ Vui lòng điền đầy đủ thông tin giao hàng.");
+    toast.warning("⚠️ Vui lòng điền đầy đủ thông tin giao hàng.");
     return;
   }
 
   const phoneRegex = /^[0-9]{10,11}$/;
   if (!phoneRegex.test(phone)) {
-    alert("⚠️ Số điện thoại không hợp lệ (10-11 số).");
+    toast.error("⚠️ Số điện thoại không hợp lệ (10-11 số).");
     return;
   }
 
   try {
     const token = localStorage.getItem("accessToken");
     if (!token) {
-      alert("⚠️ Vui lòng đăng nhập để đặt hàng.");
+      toast.warning("⚠️ Vui lòng đăng nhập để đặt hàng.");
       navigate("/dang-nhap");
       return;
     }
@@ -198,7 +200,7 @@ export default function Cart() {
     console.log("📥 Order response:", res.data);
 
     if (!res.data?.data?.order_id) {
-      alert("❌ Đặt hàng thất bại: Không có mã đơn hàng.");
+      toast.error("❌ Đặt hàng thất bại: Không có mã đơn hàng.");
       return;
     }
 
@@ -219,12 +221,12 @@ export default function Cart() {
 
         if (!paymentRes.data?.paymentUrl) {
           console.error("❌ No paymentUrl in response:", paymentRes.data);
-          alert("❌ Không thể tạo URL thanh toán. Vui lòng thử lại.");
+          toast.error("❌ Không thể tạo URL thanh toán. Vui lòng thử lại.");
           return;
         }
 
         console.log("✅ Redirecting to VNPay:", paymentRes.data.paymentUrl);
-        alert("🔁 Đang chuyển sang cổng thanh toán VNPAY...");
+        toast.info("🔁 Đang chuyển sang cổng thanh toán VNPAY...");
         window.location.href = paymentRes.data.paymentUrl;
         return;
       } catch (err) {
@@ -233,9 +235,9 @@ export default function Cart() {
           const e = err as { response?: { data?: { message?: string }; status?: number } };
           const errorMsg = e.response?.data?.message || "Lỗi không xác định";
           const status = e.response?.status;
-          alert(`❌ Lỗi khi tạo URL thanh toán (${status}):\n${errorMsg}\n\nVui lòng kiểm tra cấu hình VNPay hoặc thử lại.`);
+          toast.error(`❌ Lỗi khi tạo URL thanh toán (${status}):\n${errorMsg}\n\nVui lòng kiểm tra cấu hình VNPay hoặc thử lại.`);
         } else {
-          alert("❌ Lỗi khi tạo URL thanh toán. Vui lòng thử lại.");
+          toast.error("❌ Lỗi khi tạo URL thanh toán. Vui lòng thử lại.");
         }
         return;
       }
@@ -246,7 +248,7 @@ export default function Cart() {
     setItems([]);
     window.dispatchEvent(new Event("cartUpdated"));
 
-    alert(
+    toast.success(
       `🎉 Đặt hàng thành công!\n\nMã đơn: #${orderId}\nTổng thanh toán: ${formatVnd(
         grand
       )}\n\nCảm ơn bạn đã mua hàng!`
@@ -261,15 +263,15 @@ export default function Cart() {
       const status = e.response?.status;
       
       if (status === 401) {
-        alert("⚠️ Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+        toast.warning("⚠️ Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
         navigate("/dang-nhap");
       } else {
-        alert(`❌ Đã xảy ra lỗi khi đặt hàng:\n${errorMsg}\n\nVui lòng thử lại.`);
+        toast.error(`❌ Đã xảy ra lỗi khi đặt hàng:\n${errorMsg}\n\nVui lòng thử lại.`);
       }
     } else if (err instanceof Error) {
-      alert(`❌ Đã xảy ra lỗi khi đặt hàng:\n${err.message}\n\nVui lòng thử lại.`);
+     toast.error(`❌ Đã xảy ra lỗi khi đặt hàng:\n${err.message}\n\nVui lòng thử lại.`);
     } else {
-      alert("❌ Đã xảy ra lỗi không xác định khi đặt hàng. Vui lòng thử lại.");
+     toast.error("❌ Đã xảy ra lỗi không xác định khi đặt hàng. Vui lòng thử lại.");
     }
   }
 };
