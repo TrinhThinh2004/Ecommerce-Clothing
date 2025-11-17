@@ -1,8 +1,8 @@
-// frontend/src/pages/FashionNews/FashionNewsPage.tsx
+
 
 import { Calendar } from "lucide-react";
 
-// 1. ĐỊNH NGHĨA KIỂU DỮ LIỆU CHO MỘT BÀI VIẾT
+
 type Article = {
   id: number;
   title: string;
@@ -13,8 +13,7 @@ type Article = {
 };
 
 // 2. TẠO DỮ LIỆU MẪU (MOCK DATA)
-// Thay thế imageURL bằng đường dẫn ảnh thực tế của bạn
-// Bạn có thể đặt các ảnh này trong thư mục /public/images/articles/
+
 const mockArticles: Article[] = [
   {
     id: 1,
@@ -90,7 +89,7 @@ const mockArticles: Article[] = [
   },
 ];
 
-// 3. COMPONENT CON ĐỂ RENDER MỘT THẺ BÀI VIẾT
+//  COMPONENT CON ĐỂ RENDER MỘT THẺ BÀI VIẾT
 function ArticleCard({ article }: { article: Article }) {
   return (
     <a
@@ -139,7 +138,7 @@ export default function FashionNewsPage() {
         Tất cả bài viết
       </h1>
 
-      {/* Dàn trang các bài viết dưới dạng lưới */}
+     
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {mockArticles.map((article) => (
           <ArticleCard key={article.id} article={article} />

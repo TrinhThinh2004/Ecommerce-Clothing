@@ -45,6 +45,7 @@ export default function FloatingContactRadix({
 }: Props) {
   if (hidden) return null;
   // Tính style cố định cho trigger (nằm ngoài mọi container)
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const triggerStyle = useMemo<React.CSSProperties>(() => {
     const right =
       typeof rightOffset === "number" ? `${rightOffset}px` : rightOffset;

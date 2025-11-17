@@ -12,10 +12,7 @@ module.exports = {
       user_id: {
         type: Sequelize.INTEGER,
         allowNull: false,
-        references: {
-          model: "users",
-          key: "user_id",
-        },
+        references: { model: "users", key: "user_id" },
         onUpdate: "CASCADE",
         onDelete: "CASCADE",
       },
@@ -37,10 +34,7 @@ module.exports = {
         allowNull: false,
         defaultValue: 0,
       },
-      total_price: {
-        type: Sequelize.DECIMAL(12, 0),
-        allowNull: false,
-      },
+      total_price: { type: Sequelize.DECIMAL(12, 0), allowNull: false },
       payment_method: {
         type: Sequelize.ENUM("cod", "vnpay", "momo"),
         allowNull: false,
