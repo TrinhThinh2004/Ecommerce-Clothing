@@ -138,38 +138,38 @@ export default function Cart() {
 
     if (code === "SEP30") {
       setApplied({ code, amount: 30000 });
-      toast.success("✅ Đã áp dụng mã giảm 30,000₫");
+      toast.success(" Đã áp dụng mã giảm 30,000₫");
     } else if (code === "FREESHIP") {
       setApplied({ code, amount: 0 });
-      toast.success("✅ Đã áp dụng mã miễn phí ship");
+      toast.success(" Đã áp dụng mã miễn phí ship");
     } else {
       setApplied({ amount: 0 });
-      toast.error("❌ Mã không hợp lệ. Thử: SEP30 hoặc FREESHIP");
+      toast.error(" Mã không hợp lệ. Thử: SEP30 hoặc FREESHIP");
     }
   };
 
   /* ========= PLACE ORDER - FIXED ========= */
  const placeOrder = async () => {
   if (!items.length) {
-    toast.warning("⚠️ Giỏ hàng trống.");
+    toast.warning(" Giỏ hàng trống.");
     return;
   }
 
   if (!name || !phone || !address || !city) {
-    toast.warning("⚠️ Vui lòng điền đầy đủ thông tin giao hàng.");
+    toast.warning(" Vui lòng điền đầy đủ thông tin giao hàng.");
     return;
   }
 
   const phoneRegex = /^[0-9]{10,11}$/;
   if (!phoneRegex.test(phone)) {
-    toast.error("⚠️ Số điện thoại không hợp lệ (10-11 số).");
+    toast.error(" Số điện thoại không hợp lệ (10-11 số).");
     return;
   }
 
   try {
     const token = localStorage.getItem("accessToken");
     if (!token) {
-      toast.warning("⚠️ Vui lòng đăng nhập để đặt hàng.");
+      toast.warning(" Vui lòng đăng nhập để đặt hàng.");
       navigate("/dang-nhap");
       return;
     }
@@ -195,21 +195,21 @@ export default function Cart() {
       })),
     };
 
-    console.log("📦 Sending order data:", orderData);
+    console.log(" Sending order data:", orderData);
     const res = await axiosInstance.post("/api/v1/orders", orderData);
-    console.log("📥 Order response:", res.data);
+    console.log(" Order response:", res.data);
 
     if (!res.data?.data?.order_id) {
-      toast.error("❌ Đặt hàng thất bại: Không có mã đơn hàng.");
+      toast.error(" Đặt hàng thất bại: Không có mã đơn hàng.");
       return;
     }
 
     const orderId = res.data.data.order_id;
 
-    // 💳 Nếu chọn VNPAY thì gọi API backend để tạo URL thanh toán
+    //  Nếu chọn VNPAY thì gọi API backend để tạo URL thanh toán
     if (pay === "vnpay") {
       try {
-        console.log("💳 Creating VNPay payment URL for order:", orderId, "amount:", grand);
+        console.log(" Creating VNPay payment URL for order:", orderId, "amount:", grand);
         
         // Gọi API backend để tạo URL thanh toán VNPay với chữ ký hợp lệ
         const paymentRes = await axiosInstance.post("/api/payment/create", {
@@ -220,30 +220,30 @@ export default function Cart() {
         console.log("📥 VNPay response:", paymentRes.data);
 
         if (!paymentRes.data?.paymentUrl) {
-          console.error("❌ No paymentUrl in response:", paymentRes.data);
-          toast.error("❌ Không thể tạo URL thanh toán. Vui lòng thử lại.");
+          console.error(" No paymentUrl in response:", paymentRes.data);
+          toast.error(" Không thể tạo URL thanh toán. Vui lòng thử lại.");
           return;
         }
 
-        console.log("✅ Redirecting to VNPay:", paymentRes.data.paymentUrl);
-        toast.info("🔁 Đang chuyển sang cổng thanh toán VNPAY...");
+        console.log(" Redirecting to VNPay:", paymentRes.data.paymentUrl);
+        toast.info(" Đang chuyển sang cổng thanh toán VNPAY...");
         window.location.href = paymentRes.data.paymentUrl;
         return;
       } catch (err) {
-        console.error("❌ Error creating VNPay URL:", err);
+        console.error(" Error creating VNPay URL:", err);
         if (typeof err === "object" && err !== null && "response" in err) {
           const e = err as { response?: { data?: { message?: string }; status?: number } };
           const errorMsg = e.response?.data?.message || "Lỗi không xác định";
           const status = e.response?.status;
-          toast.error(`❌ Lỗi khi tạo URL thanh toán (${status}):\n${errorMsg}\n\nVui lòng kiểm tra cấu hình VNPay hoặc thử lại.`);
+          toast.error(` Lỗi khi tạo URL thanh toán (${status}):\n${errorMsg}\n\nVui lòng kiểm tra cấu hình VNPay hoặc thử lại.`);
         } else {
-          toast.error("❌ Lỗi khi tạo URL thanh toán. Vui lòng thử lại.");
+          toast.error(" Lỗi khi tạo URL thanh toán. Vui lòng thử lại.");
         }
         return;
       }
     }
 
-    // ✅ Nếu không phải VNPAY thì giữ luồng cũ (COD hoặc Momo)
+    //  Nếu không phải VNPAY thì giữ luồng cũ (COD hoặc Momo)
     await clearCart();
     setItems([]);
     window.dispatchEvent(new Event("cartUpdated"));
@@ -256,22 +256,22 @@ export default function Cart() {
     navigate("/");
 
   } catch (err: unknown) {
-    console.error("❌ Order error:", err);
+    console.error(" Order error:", err);
     if (typeof err === "object" && err !== null && "response" in err) {
       const e = err as { response?: { data?: { message?: string }; status?: number }; message?: string };
       const errorMsg = e.response?.data?.message || e.message || "Lỗi không xác định";
       const status = e.response?.status;
       
       if (status === 401) {
-        toast.warning("⚠️ Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+        toast.warning(" Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
         navigate("/dang-nhap");
       } else {
-        toast.error(`❌ Đã xảy ra lỗi khi đặt hàng:\n${errorMsg}\n\nVui lòng thử lại.`);
+        toast.error(` Đã xảy ra lỗi khi đặt hàng:\n${errorMsg}\n\nVui lòng thử lại.`);
       }
     } else if (err instanceof Error) {
-     toast.error(`❌ Đã xảy ra lỗi khi đặt hàng:\n${err.message}\n\nVui lòng thử lại.`);
+     toast.error(` Đã xảy ra lỗi khi đặt hàng:\n${err.message}\n\nVui lòng thử lại.`);
     } else {
-     toast.error("❌ Đã xảy ra lỗi không xác định khi đặt hàng. Vui lòng thử lại.");
+     toast.error(" Đã xảy ra lỗi không xác định khi đặt hàng. Vui lòng thử lại.");
     }
   }
 };
@@ -457,7 +457,7 @@ export default function Cart() {
               </div>
               {applied.code && (
                 <p className="mt-2 text-sm text-emerald-700">
-                  ✅ Đã áp dụng mã <b>{applied.code}</b>
+                   Đã áp dụng mã <b>{applied.code}</b>
                 </p>
               )}
             </Card>

@@ -1,5 +1,4 @@
-// src/pages/Admin/AdminCustomers.tsx
-import { useEffect, useMemo, useState, type ChangeEvent } from "react";
+import { useEffect, useState, ChangeEvent } from "react";
 import {
   UserPlus,
   Search,
@@ -11,294 +10,126 @@ import {
   Phone,
   Tags,
 } from "lucide-react";
-import { formatVnd } from "../../../utils/format";
 import AdminLayout from "../_Components/AdminLayout";
+import { formatVnd } from "../../../utils/format";
 
-/* ================= Types ================= */
-type Customer = {
-  id: string;
-  name: string;
-  phone: string;
-  email: string;
-  totalOrders: number;
-  totalSpent: number; // VND
-  active: boolean; // true=đang hoạt động, false=đã chặn
-  createdAt: string; // ISO
-};
-
-type EditPayload = Omit<
-  Customer,
-  "id" | "createdAt" | "totalOrders" | "totalSpent"
-> & {
-  id?: string;
-};
-
-/* ================= Seed & Storage ================= */
-const SAMPLE_CUSTOMERS: Customer[] = [
-  {
-    id: "C0001",
-    name: "Nguyễn Văn A",
-    phone: "0901 234 567",
-    email: "a.nguyen@example.com",
-    totalOrders: 12,
-    totalSpent: 3890000,
-    active: true,
-    createdAt: new Date(Date.now() - 1 * 86400000).toISOString(),
-  },
-  {
-    id: "C0002",
-    name: "Trần Thị B",
-    phone: "0902 345 678",
-    email: "b.tran@example.com",
-    totalOrders: 5,
-    totalSpent: 1590000,
-    active: true,
-    createdAt: new Date(Date.now() - 3 * 86400000).toISOString(),
-  },
-  {
-    id: "C0003",
-    name: "Lê Minh C",
-    phone: "0903 456 789",
-    email: "c.le@example.com",
-    totalOrders: 1,
-    totalSpent: 299000,
-    active: false,
-    createdAt: new Date(Date.now() - 7 * 86400000).toISOString(),
-  },
-  {
-    id: "C0004",
-    name: "Phạm Thu D",
-    phone: "0904 567 890",
-    email: "d.pham@example.com",
-    totalOrders: 8,
-    totalSpent: 2450000,
-    active: true,
-    createdAt: new Date(Date.now() - 10 * 86400000).toISOString(),
-  },
-  {
-    id: "C0005",
-    name: "Đỗ Quang E",
-    phone: "0905 678 901",
-    email: "e.do@example.com",
-    totalOrders: 3,
-    totalSpent: 799000,
-    active: true,
-    createdAt: new Date(Date.now() - 15 * 86400000).toISOString(),
-  },
-  {
-    id: "C0006",
-    name: "Võ Hải F",
-    phone: "0906 789 012",
-    email: "f.vo@example.com",
-    totalOrders: 21,
-    totalSpent: 6890000,
-    active: true,
-    createdAt: new Date(Date.now() - 18 * 86400000).toISOString(),
-  },
-  {
-    id: "C0007",
-    name: "Bùi Lan G",
-    phone: "0907 890 123",
-    email: "g.bui@example.com",
-    totalOrders: 0,
-    totalSpent: 0,
-    active: false,
-    createdAt: new Date(Date.now() - 25 * 86400000).toISOString(),
-  },
-  {
-    id: "C0008",
-    name: "Huỳnh Đức H",
-    phone: "0908 901 234",
-    email: "h.huynh@example.com",
-    totalOrders: 11,
-    totalSpent: 3150000,
-    active: true,
-    createdAt: new Date(Date.now() - 30 * 86400000).toISOString(),
-  },
-  {
-    id: "C0009",
-    name: "Tạ Mỹ I",
-    phone: "0909 012 345",
-    email: "i.ta@example.com",
-    totalOrders: 4,
-    totalSpent: 1190000,
-    active: true,
-    createdAt: new Date(Date.now() - 45 * 86400000).toISOString(),
-  },
-  {
-    id: "C0010",
-    name: "Trương Gia K",
-    phone: "0910 123 456",
-    email: "k.truong@example.com",
-    totalOrders: 6,
-    totalSpent: 1750000,
-    active: true,
-    createdAt: new Date(Date.now() - 60 * 86400000).toISOString(),
-  },
-];
-
-const LS_KEY = "admin_customers";
-
-function loadCustomers(): Customer[] {
-  try {
-    const raw = localStorage.getItem(LS_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw) as unknown;
-      if (Array.isArray(parsed)) {
-        return parsed.filter((x): x is Customer => {
-          const r = x as Record<string, unknown>;
-          return (
-            typeof r.id === "string" &&
-            typeof r.name === "string" &&
-            typeof r.phone === "string" &&
-            typeof r.email === "string" &&
-            typeof r.totalOrders === "number" &&
-            typeof r.totalSpent === "number" &&
-            typeof r.active === "boolean" &&
-            typeof r.createdAt === "string"
-          );
-        });
-      }
-    }
-  } catch (err) {
-    console.warn("[admin_customers] Lỗi đọc localStorage:", err);
-  }
-  // seed mặc định
-  try {
-    localStorage.setItem(LS_KEY, JSON.stringify(SAMPLE_CUSTOMERS));
-  } catch (err) {
-    console.warn("[admin_customers] Lỗi ghi localStorage:", err);
-  }
-  return SAMPLE_CUSTOMERS;
-}
-
-function saveCustomers(items: Customer[]) {
-  try {
-    localStorage.setItem(LS_KEY, JSON.stringify(items));
-  } catch (err) {
-    console.warn("[admin_customers] Lỗi ghi localStorage:", err);
-  }
-}
+import {
+  getAdminCustomers,
+  createCustomer,
+  updateCustomer,
+  deleteCustomer,
+  setCustomersActive,
+  type Customer,
+} from "../../../api/admin";
 
 /* ================= Page ================= */
 const PAGE_SIZE = 10;
 
 export default function AdminCustomers() {
-  const [items, setItems] = useState<Customer[]>(() => loadCustomers());
+  const [items, setItems] = useState<Customer[]>([]);
+  const [total, setTotal] = useState(0);
+  const [pageCount, setPageCount] = useState(1);
+
+  const [loading, setLoading] = useState(false);
+
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<"all" | "active" | "blocked">("all");
   const [page, setPage] = useState(1);
+
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Customer | null>(null);
 
-  // đồng bộ LS
-  useEffect(() => saveCustomers(items), [items]);
+  /* ============= Load from API ============= */
+  async function load() {
+    setLoading(true);
+    try {
+      const res = await getAdminCustomers({
+        q,
+        status,
+        page,
+        pageSize: PAGE_SIZE,
+      });
 
-  // filter/search
-  const filtered = useMemo(() => {
-    const text = q.trim().toLowerCase();
-    return items.filter((c) => {
-      const okText =
-        !text ||
-        c.name.toLowerCase().includes(text) ||
-        c.email.toLowerCase().includes(text) ||
-        c.phone.replace(/\s/g, "").includes(text.replace(/\s/g, ""));
-      const okStatus =
-        status === "all" || (status === "active" ? c.active : !c.active);
-      return okText && okStatus;
-    });
-  }, [items, q, status]);
+      setItems(res.items);
+      setTotal(res.total);
+      setPageCount(res.pageCount);
+    } finally {
+      setLoading(false);
+    }
+  }
 
-  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paged = useMemo(() => {
-    const start = (page - 1) * PAGE_SIZE;
-    return filtered.slice(start, start + PAGE_SIZE);
-  }, [filtered, page]);
-
-  // khi thay filter => về trang 1
   useEffect(() => {
-    setPage(1);
-  }, [q, status]);
+    load();
+  }, [q, status, page]);
 
+  /* ============= Checkbox logic ============= */
   const allCheckedOnPage =
-    paged.length > 0 && paged.every((c) => checked[c.id]);
-  const someCheckedOnPage = paged.some((c) => checked[c.id]);
+    items.length > 0 && items.every((c) => checked[c.id]);
+  const someCheckedOnPage = items.some((c) => checked[c.id]);
 
   function toggleAllOnPage(e: ChangeEvent<HTMLInputElement>) {
     const on = e.target.checked;
-    setChecked((prev) => {
-      const next = { ...prev };
-      paged.forEach((c) => {
-        next[c.id] = on;
-      });
-      return next;
-    });
+    const next = { ...checked };
+    items.forEach((c) => (next[c.id] = on));
+    setChecked(next);
   }
 
   function toggleOne(id: string, on: boolean) {
     setChecked((prev) => ({ ...prev, [id]: on }));
   }
 
-  function delSelected() {
+  /* ============= Bulk actions ============= */
+  async function delSelected() {
     const ids = Object.keys(checked).filter((k) => checked[k]);
     if (!ids.length) return;
     if (!confirm(`Xoá ${ids.length} khách hàng đã chọn?`)) return;
-    setItems((prev) => prev.filter((c) => !ids.includes(c.id)));
+
+    for (const id of ids) await deleteCustomer(id);
+
     setChecked({});
+    load();
   }
 
-  function setActiveSelected(active: boolean) {
+  async function setActiveSelectedItems(active: boolean) {
     const ids = Object.keys(checked).filter((k) => checked[k]);
     if (!ids.length) return;
-    setItems((prev) =>
-      prev.map((c) => (ids.includes(c.id) ? { ...c, active } : c))
-    );
+    await setCustomersActive(ids, active);
     setChecked({});
+    load();
   }
 
-  function removeOne(id: string) {
+  /* ============= Row actions ============= */
+  async function removeOne(id: string) {
     if (!confirm("Xoá khách hàng này?")) return;
-    setItems((prev) => prev.filter((c) => c.id !== id));
+    await deleteCustomer(id);
+    load();
   }
 
-  function toggleActive(id: string) {
-    setItems((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, active: !c.active } : c))
-    );
+  async function toggleActive(id: string, current: boolean) {
+    await setCustomersActive([id], !current);
+    load();
   }
 
-  function onSubmitForm(payload: EditPayload) {
-    // Create
-    if (!payload.id) {
-      const id = `C${String(Date.now()).slice(-8)}`;
-      const newItem: Customer = {
-        id,
-        name: payload.name,
-        phone: payload.phone,
-        email: payload.email,
-        active: payload.active,
-        totalOrders: 0,
-        totalSpent: 0,
-        createdAt: new Date().toISOString(),
-      };
-      setItems((prev) => [newItem, ...prev]);
-      return;
+  /* ============= Create & Update ============= */
+  async function onSubmitForm(data: {
+    id?: string;
+    name: string;
+    phone: string;
+    email: string;
+    active: boolean;
+  }) {
+    if (!data.id) {
+      await createCustomer({
+        name: data.name,
+        phone: data.phone,
+        email: data.email,
+        active: data.active,
+      });
+    } else {
+      await updateCustomer(data.id, data);
     }
-    // Update
-    setItems((prev) =>
-      prev.map((c) =>
-        c.id === payload.id
-          ? {
-              ...c,
-              name: payload.name,
-              phone: payload.phone,
-              email: payload.email,
-              active: payload.active,
-            }
-          : c
-      )
-    );
+    load();
   }
 
   return (
@@ -319,12 +150,16 @@ export default function AdminCustomers() {
     >
       <div className="min-h-screen bg-neutral-50">
         <div className="mx-auto max-w-7xl px-4 py-6">
+
           {/* Filters */}
           <div className="mb-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div className="relative">
               <input
                 value={q}
-                onChange={(e) => setQ(e.target.value)}
+                onChange={(e) => {
+                  setPage(1);
+                  setQ(e.target.value);
+                }}
                 placeholder="Tìm theo tên, email hoặc SĐT…"
                 className="h-10 w-full rounded-md border border-neutral-300 pl-10 pr-3 text-sm outline-none focus:border-black"
               />
@@ -334,7 +169,11 @@ export default function AdminCustomers() {
             <div>
               <select
                 value={status}
-                onChange={(e) => setStatus(e.target.value as typeof status)}
+                onChange={(e) => {
+                  setPage(1);
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  setStatus(e.target.value as any);
+                }}
                 className="h-10 w-full rounded-md border border-neutral-300 px-3 text-sm outline-none focus:border-black"
               >
                 <option value="all">Tất cả trạng thái</option>
@@ -346,23 +185,20 @@ export default function AdminCustomers() {
             {/* Bulk actions */}
             <div className="flex flex-wrap items-center gap-2 lg:col-span-2">
               <button
-                onClick={() => setActiveSelected(true)}
+                onClick={() => setActiveSelectedItems(true)}
                 className="rounded-md border px-3 py-2 text-sm hover:bg-neutral-50"
-                title="Mở chặn các KH đã chọn"
               >
                 Mở chặn
               </button>
               <button
-                onClick={() => setActiveSelected(false)}
+                onClick={() => setActiveSelectedItems(false)}
                 className="rounded-md border px-3 py-2 text-sm hover:bg-neutral-50"
-                title="Chặn các KH đã chọn"
               >
                 Chặn
               </button>
               <button
                 onClick={delSelected}
                 className="inline-flex items-center gap-1 rounded-md border px-3 py-2 text-sm text-red-600 hover:bg-red-50"
-                title="Xoá các KH đã chọn"
               >
                 <Trash2 className="h-4 w-4" />
                 Xoá
@@ -379,7 +215,6 @@ export default function AdminCustomers() {
                     <th className="w-10 px-3 py-3">
                       <input
                         type="checkbox"
-                        className="accent-black"
                         checked={allCheckedOnPage}
                         ref={(el) => {
                           if (el)
@@ -387,6 +222,7 @@ export default function AdminCustomers() {
                               !allCheckedOnPage && someCheckedOnPage;
                         }}
                         onChange={toggleAllOnPage}
+                        className="accent-black"
                       />
                     </th>
                     <th className="px-3 py-3">Khách hàng</th>
@@ -398,98 +234,98 @@ export default function AdminCustomers() {
                     <th className="w-[140px] px-3 py-3">Thao tác</th>
                   </tr>
                 </thead>
+
                 <tbody className="divide-y text-sm">
-                  {paged.map((c) => (
-                    <tr key={c.id} className="hover:bg-neutral-50/50">
-                      <td className="px-3 py-2">
-                        <input
-                          type="checkbox"
-                          className="accent-black"
-                          checked={!!checked[c.id]}
-                          onChange={(e) => toggleOne(c.id, e.target.checked)}
-                        />
-                      </td>
-                      <td className="px-3 py-2">
-                        <div className="font-semibold">{c.name}</div>
-                        <div className="mt-0.5 flex items-center gap-1 text-xs text-neutral-500">
-                          <Tags className="h-3.5 w-3.5" />
-                          <span>
-                            {new Date(c.createdAt).toLocaleDateString("vi-VN")}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-3 py-2 truncate">
-                        <div className="flex items-center gap-1">
-                          <Mail className="h-3.5 w-3.5 text-neutral-500" />
-                          <span className="truncate">{c.email}</span>
-                        </div>
-                      </td>
-                      <td className="px-3 py-2">
-                        <div className="flex items-center gap-1">
-                          <Phone className="h-3.5 w-3.5 text-neutral-500" />
-                          <span>{c.phone}</span>
-                        </div>
-                      </td>
-                      <td className="px-3 py-2">{c.totalOrders}</td>
-                      <td className="px-3 py-2 font-semibold">
-                        {formatVnd(c.totalSpent)}
-                      </td>
-                      <td className="px-3 py-2">
-                        {c.active ? (
-                          <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">
-                            Đang hoạt động
-                          </span>
-                        ) : (
-                          <span className="rounded-full bg-neutral-100 px-2 py-1 text-xs font-semibold text-neutral-700">
-                            Đã chặn
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-3 py-2">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => {
-                              setEditing(c);
-                              setShowForm(true);
-                            }}
-                            className="rounded-md border px-2 py-1.5 text-xs hover:bg-neutral-50"
-                            title="Sửa"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => toggleActive(c.id)}
-                            className="rounded-md border px-2 py-1.5 text-xs hover:bg-neutral-50"
-                            title={
-                              c.active
-                                ? "Chặn khách hàng"
-                                : "Mở chặn khách hàng"
-                            }
-                          >
-                            {c.active ? (
-                              <EyeOff className="h-4 w-4" />
-                            ) : (
-                              <Eye className="h-4 w-4" />
-                            )}
-                          </button>
-                          <button
-                            onClick={() => removeOne(c.id)}
-                            className="rounded-md border px-2 py-1.5 text-xs text-red-600 hover:bg-red-50"
-                            title="Xoá"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
+                  {loading && (
+                    <tr>
+                      <td colSpan={8} className="py-6 text-center text-neutral-500">
+                        Đang tải dữ liệu...
                       </td>
                     </tr>
-                  ))}
+                  )}
 
-                  {paged.length === 0 && (
+                  {!loading &&
+                    items.map((c) => (
+                      <tr key={c.id} className="hover:bg-neutral-50/50">
+                        <td className="px-3 py-2">
+                          <input
+                            type="checkbox"
+                            checked={!!checked[c.id]}
+                            onChange={(e) => toggleOne(c.id, e.target.checked)}
+                            className="accent-black"
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <div className="font-semibold">{c.name}</div>
+                          <div className="mt-0.5 flex items-center gap-1 text-xs text-neutral-500">
+                            <Tags className="h-3.5 w-3.5" />
+                            <span>
+                              {new Date(c.createdAt).toLocaleDateString("vi-VN")}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 truncate">
+                          <div className="flex items-center gap-1">
+                            <Mail className="h-3.5 w-3.5 text-neutral-500" />
+                            <span className="truncate">{c.email}</span>
+                          </div>
+                        </td>
+                        <td className="px-3 py-2">
+                          <div className="flex items-center gap-1">
+                            <Phone className="h-3.5 w-3.5 text-neutral-500" />
+                            {c.phone}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2">{c.totalOrders}</td>
+                        <td className="px-3 py-2 font-semibold">
+                          {formatVnd(c.totalSpent)}
+                        </td>
+                        <td className="px-3 py-2">
+                          {c.active ? (
+                            <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">
+                              Đang hoạt động
+                            </span>
+                          ) : (
+                            <span className="rounded-full bg-neutral-100 px-2 py-1 text-xs font-semibold text-neutral-700">
+                              Đã chặn
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => {
+                                setEditing(c);
+                                setShowForm(true);
+                              }}
+                              className="rounded-md border px-2 py-1.5 text-xs hover:bg-neutral-50"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => toggleActive(c.id, c.active)}
+                              className="rounded-md border px-2 py-1.5 text-xs hover:bg-neutral-50"
+                            >
+                              {c.active ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </button>
+                            <button
+                              onClick={() => removeOne(c.id)}
+                              className="rounded-md border px-2 py-1.5 text-xs text-red-600 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+
+                  {!loading && items.length === 0 && (
                     <tr>
-                      <td
-                        colSpan={8}
-                        className="px-3 py-10 text-center text-sm text-neutral-600"
-                      >
+                      <td colSpan={8} className="py-10 text-center text-neutral-500">
                         Không có khách hàng phù hợp.
                       </td>
                     </tr>
@@ -498,12 +334,12 @@ export default function AdminCustomers() {
               </table>
             </div>
 
-            {/* Footer: paging info */}
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t px-3 py-3 text-sm">
+            {/* Footer */}
+            <div className="flex items-center justify-between border-t px-3 py-3 text-sm">
               <div>
-                Hiển thị <b>{paged.length}</b> / <b>{filtered.length}</b> khách
-                hàng
+                Hiển thị <b>{items.length}</b> / <b>{total}</b> khách hàng
               </div>
+
               <PaginationSimple
                 page={page}
                 pageCount={pageCount}
@@ -516,13 +352,12 @@ export default function AdminCustomers() {
           </div>
         </div>
 
-        {/* Modal form */}
         {showForm && (
           <CustomerFormModal
             initial={editing ?? undefined}
             onClose={() => setShowForm(false)}
-            onSubmit={(payload) => {
-              onSubmitForm(payload);
+            onSubmit={(data) => {
+              onSubmitForm(data);
               setShowForm(false);
             }}
           />
@@ -532,7 +367,9 @@ export default function AdminCustomers() {
   );
 }
 
-/* ================= Small components ================= */
+/* ============================================================================
+   Pagination
+============================================================================ */
 function PaginationSimple({
   page,
   pageCount,
@@ -554,23 +391,15 @@ function PaginationSimple({
     "rounded-md border px-3 py-1.5 text-sm hover:bg-neutral-50 disabled:opacity-40";
 
   return (
-    <nav
-      className="flex items-center justify-center gap-2"
-      aria-label="Pagination"
-    >
-      <button
-        type="button"
-        className={itemCls}
-        onClick={() => onChange(1)}
-        disabled={page === 1}
-      >
+    <nav className="flex items-center gap-2">
+      <button disabled={page === 1} className={itemCls} onClick={() => onChange(1)}>
         « Đầu
       </button>
+
       <button
-        type="button"
-        className={itemCls}
-        onClick={() => onChange(Math.max(1, page - 1))}
         disabled={page === 1}
+        className={itemCls}
+        onClick={() => onChange(page - 1)}
       >
         ‹ Trước
       </button>
@@ -579,14 +408,13 @@ function PaginationSimple({
 
       {pages.map((p) => (
         <button
-          type="button"
           key={p}
-          onClick={() => onChange(p)}
           className={
             p === page
-              ? `${itemCls} border-black bg-black text-white hover:bg-black`
+              ? `${itemCls} bg-black text-white border-black`
               : itemCls
           }
+          onClick={() => onChange(p)}
         >
           {p}
         </button>
@@ -595,18 +423,16 @@ function PaginationSimple({
       {to < pageCount && <span className="px-1 text-neutral-500">…</span>}
 
       <button
-        type="button"
-        className={itemCls}
-        onClick={() => onChange(Math.min(pageCount, page + 1))}
         disabled={page === pageCount}
+        className={itemCls}
+        onClick={() => onChange(page + 1)}
       >
         Sau ›
       </button>
       <button
-        type="button"
+        disabled={page === pageCount}
         className={itemCls}
         onClick={() => onChange(pageCount)}
-        disabled={page === pageCount}
       >
         Cuối »
       </button>
@@ -614,6 +440,9 @@ function PaginationSimple({
   );
 }
 
+/* ============================================================================
+   Modal Form
+============================================================================ */
 function CustomerFormModal({
   initial,
   onClose,
@@ -621,111 +450,94 @@ function CustomerFormModal({
 }: {
   initial?: Customer;
   onClose: () => void;
-  onSubmit: (payload: EditPayload) => void;
+  onSubmit: (payload: {
+    id?: string;
+    name: string;
+    phone: string;
+    email: string;
+    active: boolean;
+  }) => void;
 }) {
-  // Khởi tạo form: lấy các trường editable, giữ id nếu edit
-  const [form, setForm] = useState<EditPayload>(() => {
-    if (initial) {
-      const { id, name, phone, email, active } = initial;
-      return { id, name, phone, email, active };
-    }
-    return {
-      name: "",
-      phone: "",
-      email: "",
-      active: true,
-    };
-  });
+  const [form, setForm] = useState(() =>
+    initial
+      ? {
+          id: initial.id,
+          name: initial.name,
+          phone: initial.phone,
+          email: initial.email,
+          active: initial.active,
+        }
+      : { name: "", phone: "", email: "", active: true }
+  );
 
-  function handleChange<K extends keyof EditPayload>(
-    key: K,
-    val: EditPayload[K]
-  ) {
-    setForm((prev) => ({ ...prev, [key]: val }));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function handleChange(key: string, value: any) {
+    setForm((s) => ({ ...s, [key]: value }));
   }
 
   function submit() {
-    // validate tối thiểu
-    if (!form.name.trim()) return alert("Vui lòng nhập tên khách hàng");
+    if (!form.name.trim()) return alert("Vui lòng nhập tên");
     if (!form.phone.trim()) return alert("Vui lòng nhập số điện thoại");
     if (!form.email.trim()) return alert("Vui lòng nhập email");
     onSubmit(form);
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items=end justify-center bg-black/30 p-0 sm:items-center sm:p-6">
-      <div className="w-full max-w-xl overflow-hidden rounded-t-2xl bg-white shadow-xl sm:rounded-2xl">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 p-0 sm:items-center sm:p-6">
+      <div className="w-full max-w-xl overflow-hidden bg-white rounded-t-2xl shadow-xl sm:rounded-2xl">
         <div className="border-b px-4 py-3">
-          <h3 className="text-base font-extrabold">
+          <h3 className="font-bold">
             {form.id ? "Cập nhật khách hàng" : "Thêm khách hàng"}
           </h3>
         </div>
 
-        <div className="space-y-3 p-4">
+        <div className="p-4 space-y-3">
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <label className="mb-1 block text-xs font-semibold text-neutral-600">
-                Họ tên
-              </label>
+              <label className="text-xs font-semibold">Họ tên</label>
               <input
                 value={form.name}
                 onChange={(e) => handleChange("name", e.target.value)}
-                className="h-10 w-full rounded-md border border-neutral-300 px-3 text-sm outline-none focus:border-black"
+                className="border h-10 w-full rounded-md px-3 text-sm"
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-semibold text-neutral-600">
-                Số điện thoại
-              </label>
+              <label className="text-xs font-semibold">Số điện thoại</label>
               <input
                 value={form.phone}
                 onChange={(e) => handleChange("phone", e.target.value)}
-                className="h-10 w-full rounded-md border border-neutral-300 px-3 text-sm outline-none focus:border-black"
+                className="border h-10 w-full rounded-md px-3 text-sm"
               />
             </div>
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-semibold text-neutral-600">
-              Email
-            </label>
+            <label className="text-xs font-semibold">Email</label>
             <input
               value={form.email}
               onChange={(e) => handleChange("email", e.target.value)}
-              className="h-10 w-full rounded-md border border-neutral-300 px-3 text-sm outline-none focus:border-black"
-              placeholder="name@example.com"
+              className="border h-10 w-full rounded-md px-3 text-sm"
             />
           </div>
 
-          <label className="flex items-center gap-2 text-sm">
+          <label className="flex items-center gap-2">
             <input
               type="checkbox"
-              className="accent-black"
               checked={form.active}
               onChange={(e) => handleChange("active", e.target.checked)}
+              className="accent-black"
             />
             Đang hoạt động
           </label>
-
-          <div className="rounded-md border border-neutral-200 bg-neutral-50 p-3 text-sm">
-            <div className="font-semibold">Xem trước</div>
-            <div className="mt-1 text-neutral-700">
-              {form.name} • {form.email} • {form.phone} •{" "}
-              {form.active ? "Đang hoạt động" : "Đã chặn"}
-            </div>
-          </div>
         </div>
 
-        <div className="flex items-center justify-end gap-2 border-t px-4 py-3">
-          <button
-            onClick={onClose}
-            className="rounded-md border px-3 py-2 text-sm hover:bg-neutral-50"
-          >
+        <div className="border-t px-4 py-3 flex justify-end gap-2">
+          <button onClick={onClose} className="border px-3 py-2 text-sm rounded-md">
             Huỷ
           </button>
           <button
             onClick={submit}
-            className="rounded-md bg-black px-3 py-2 text-sm font-semibold text-white hover:bg-black/90"
+            className="bg-black text-white px-3 py-2 text-sm rounded-md"
           >
             {form.id ? "Lưu thay đổi" : "Tạo mới"}
           </button>

@@ -1,42 +1,64 @@
-import { useEffect, useState, useCallback } from "react";
 import axiosInstance from "./client";
 
-export type AdminUser = {
-  user_id: number;
-  username: string;
-  email?: string;
-  phone_number?: string | null;
-  role?: string;
-  created_at?: string;
+/* =============== Types =============== */
+export type Customer = {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  totalOrders: number;
+  totalSpent: number;
+  active: boolean;
+  createdAt: string;
 };
 
-export const getAdminUsers = async () => {
-  const res = await axiosInstance.get("/api/v1/admin/users");
-  return res.data?.users as AdminUser[];
+export type CustomerQuery = {
+  q?: string;
+  status?: "all" | "active" | "blocked";
+  page?: number;
+  pageSize?: number;
 };
 
-export function useAdminUsers() {
-  const [users, setUsers] = useState<AdminUser[] | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
+/* =============== API Calls =============== */
 
-  const fetchUsers = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await getAdminUsers();
-      setUsers(data || []);
-    } catch (err: any) {
-      setError(err);
-      setUsers([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+// GET list
+export async function getAdminCustomers(params: CustomerQuery) {
+  const res = await axiosInstance.get("/api/v1/admin/customers", { params });
+  return res.data as {
+    items: Customer[];
+    total: number;
+    page: number;
+    pageCount: number;
+  };
+}
 
-  useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+// CREATE
+export async function createCustomer(data: {
+  name: string;
+  phone: string;
+  email: string;
+  active: boolean;
+}) {
+  const res = await axiosInstance.post("/api/v1/admin/customers", data);
+  return res.data as Customer;
+}
 
-  return { users, loading, error, refresh: fetchUsers };
+// UPDATE
+export async function updateCustomer(id: string, data: Partial<Customer>) {
+  const res = await axiosInstance.put(`/api/v1/admin/customers/${id}`, data);
+  return res.data as Customer;
+}
+
+// DELETE
+export async function deleteCustomer(id: string) {
+  await axiosInstance.delete(`/api/v1/admin/customers/${id}`);
+}
+
+// BULK Change active
+export async function setCustomersActive(ids: string[], active: boolean) {
+  const res = await axiosInstance.put(`/api/v1/admin/customers/active`, {
+    ids,
+    active,
+  });
+  return res.data;
 }
