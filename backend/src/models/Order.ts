@@ -1,6 +1,6 @@
 import { DataTypes, Model, Optional } from "sequelize";
 import sequelize from "../config/database";
-
+import User from "./User";
 export interface OrderAttributes {
   order_id: number;
   user_id: number;
@@ -68,6 +68,7 @@ class Order
 
 Order.init(
   {
+    
     order_id: {
       type: DataTypes.INTEGER,
       autoIncrement: true,
@@ -116,5 +117,8 @@ Order.init(
     underscored: true,              // Chuyển camelCase -> snake_case
   }
 );
-
+Order.belongsTo(User, { 
+  foreignKey: "user_id", 
+  as: "user" 
+});
 export default Order;
