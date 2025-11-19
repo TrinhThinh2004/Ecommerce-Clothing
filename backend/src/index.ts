@@ -11,13 +11,14 @@ import Message from './models/Message';
 import { testConnection } from "./config/database";
 import productsRouter from "./routes/products";
 import authRouter from "./routes/auth";
-import adminRouter from "./routes/admin";
+import adminRoutes from "./routes/admin";
 import categoryRoutes from "./routes/categorys";
 import orderItemRoutes from "./routes/orderItem";
 import cart from "./routes/cart";
 import orderRoutes from "./routes/order";
 import paymentRoutes from "./routes/payment"
 import chatRoutes from "./routes/chat";
+
 dotenv.config();
 
 const app = express();
@@ -37,7 +38,7 @@ app.get("/", (req, res) => {
 
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/products', productsRouter);
-app.use('/api/v1/admin', adminRouter);
+app.use('/api/v1/admin', adminRoutes);
 app.use("/api/v1/categorys", categoryRoutes);
 app.use("/api/v1/cart", cart);
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
