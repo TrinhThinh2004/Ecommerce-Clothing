@@ -132,5 +132,10 @@ export const ROUTES: RouteItem[] = [
     element: AdminCustomers,
     layout: { type: "none" },
   },
+  {
+    path: PATHS.ADMIN_SETTINGS,
+    element: lazy(() => import("../pages/Admin/AdminSetting/AdminSetting")),
+    layout: { type: "none" },
+  },
   { path: "/admin/chat", element: AdminChat, layout: { type: "none" } },
 ];
