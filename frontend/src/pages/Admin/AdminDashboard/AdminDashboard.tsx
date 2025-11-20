@@ -1,5 +1,5 @@
 // src/pages/Admin/AdminDashboard.tsx
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   LayoutGrid,
   ShoppingBag,
@@ -10,6 +10,8 @@ import {
   Settings,
   BarChart3,
   ChevronRight,
+  TrendingUp,
+  TrendingDown,
 } from "lucide-react";
 import {
   AreaChart,
@@ -21,47 +23,205 @@ import {
   CartesianGrid,
 } from "recharts";
 import { Link } from "react-router-dom";
+import { toast } from "react-toastify";
 
 import AdminLayout from "../_Components/AdminLayout";
+import { fetchAllOrders, type AdminOrder } from "../../../api/admin";
+import { fetchAllCustomers, type AdminCustomer } from "../../../api/admin";
+import { formatVnd } from "../../../utils/format";
 
-/* ================= Mock helpers ================= */
 type TimeRange = "day" | "week" | "month";
-type Point = { label: string; value: number };
+type ChartPoint = { label: string; value: number; revenue: number };
 
-function genData(range: TimeRange): Point[] {
-  if (range === "day") {
-    return Array.from({ length: 24 }, (_, i) => ({
-      label: `${String(i).padStart(2, "0")}:00`,
-      value: Math.round(Math.random() * 50) + (i < 9 ? 10 : 0),
-    }));
-  }
-  if (range === "week") {
-    const days = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
-    return days.map((d, i) => ({
-      label: d,
-      value: Math.round(Math.random() * 300) + (i >= 4 ? 120 : 20),
-    }));
-  }
-  // month
-  return Array.from({ length: 30 }, (_, i) => ({
-    label: String(i + 1),
-    value: Math.round(Math.random() * 400) + (i % 6 === 0 ? 200 : 40),
-  }));
-}
+type DashboardStats = {
+  todayOrders: number;
+  todayRevenue: number;
+  totalCustomers: number;
+  newCustomers: number;
+  pendingOrders: number;
+  completedOrders: number;
+  avgOrderValue: number;
+  conversionRate: number;
+};
 
-const statFmt = (n: number) => n.toLocaleString("vi-VN");
-
-/* ================= Page ================= */
 export default function AdminDashboard() {
+  const [loading, setLoading] = useState(true);
+  const [orders, setOrders] = useState<AdminOrder[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [customers, setCustomers] = useState<AdminCustomer[]>([]);
+  const [stats, setStats] = useState<DashboardStats>({
+    todayOrders: 0,
+    todayRevenue: 0,
+    totalCustomers: 0,
+    newCustomers: 0,
+    pendingOrders: 0,
+    completedOrders: 0,
+    avgOrderValue: 0,
+    conversionRate: 0,
+  });
   const [range, setRange] = useState<TimeRange>("day");
-  const data = useMemo(() => genData(range), [range]);
+  const [chartData, setChartData] = useState<ChartPoint[]>([]);
 
-  const todayOrders = useMemo(
-    () => data.reduce((s, p) => s + p.value, 0),
-    [data]
-  );
-  const todayRevenue = todayOrders * 199000;
-  const convRate = 2.8;
+  useEffect(() => {
+    loadData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (orders.length > 0) {
+      generateChartData();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [range, orders]);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [ordersData, customersData] = await Promise.all([
+        fetchAllOrders(),
+        fetchAllCustomers(),
+      ]);
+      
+      setOrders(ordersData);
+      setCustomers(customersData);
+      calculateStats(ordersData, customersData);
+    } catch (err) {
+      console.error("Error loading dashboard data:", err);
+      toast.error("Không thể tải dữ liệu dashboard");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const calculateStats = (ordersData: AdminOrder[], customersData: AdminCustomer[]) => {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const last30Days = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    // Today's orders
+    const todayOrders = ordersData.filter(
+      (o) => new Date(o.created_at) >= todayStart
+    );
+    const todayRevenue = todayOrders.reduce((sum, o) => sum + o.total_price, 0);
+
+    // New customers (last 30 days)
+    const newCustomers = customersData.filter(
+      (c) => new Date(c.created_at) >= last30Days
+    ).length;
+
+    // Order status counts
+    const pendingOrders = ordersData.filter(
+      (o) => o.status === "pending" || o.status === "processing"
+    ).length;
+    const completedOrders = ordersData.filter(
+      (o) => o.status === "completed"
+    ).length;
+
+    // Average order value
+    const totalRevenue = ordersData.reduce((sum, o) => sum + o.total_price, 0);
+    const avgOrderValue = ordersData.length > 0 ? totalRevenue / ordersData.length : 0;
+
+    // Conversion rate (completed / total orders)
+    const conversionRate =
+      ordersData.length > 0 ? (completedOrders / ordersData.length) * 100 : 0;
+
+    setStats({
+      todayOrders: todayOrders.length,
+      todayRevenue,
+      totalCustomers: customersData.length,
+      newCustomers,
+      pendingOrders,
+      completedOrders,
+      avgOrderValue,
+      conversionRate,
+    });
+  };
+
+  const generateChartData = () => {
+    const data: ChartPoint[] = [];
+    const now = new Date();
+
+    if (range === "day") {
+      // Last 24 hours
+      for (let i = 23; i >= 0; i--) {
+        const hour = new Date(now.getTime() - i * 60 * 60 * 1000);
+        const hourStart = new Date(
+          hour.getFullYear(),
+          hour.getMonth(),
+          hour.getDate(),
+          hour.getHours()
+        );
+        const hourEnd = new Date(hourStart.getTime() + 60 * 60 * 1000);
+
+        const hourOrders = orders.filter((o) => {
+          const orderTime = new Date(o.created_at);
+          return orderTime >= hourStart && orderTime < hourEnd;
+        });
+
+        data.push({
+          label: `${String(hourStart.getHours()).padStart(2, "0")}:00`,
+          value: hourOrders.length,
+          revenue: hourOrders.reduce((sum, o) => sum + o.total_price, 0),
+        });
+      }
+    } else if (range === "week") {
+      // Last 7 days
+      const days = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+      for (let i = 6; i >= 0; i--) {
+        const day = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+        const dayStart = new Date(day.getFullYear(), day.getMonth(), day.getDate());
+        const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+
+        const dayOrders = orders.filter((o) => {
+          const orderTime = new Date(o.created_at);
+          return orderTime >= dayStart && orderTime < dayEnd;
+        });
+
+        data.push({
+          label: days[dayStart.getDay()],
+          value: dayOrders.length,
+          revenue: dayOrders.reduce((sum, o) => sum + o.total_price, 0),
+        });
+      }
+    } else {
+      // Last 30 days
+      for (let i = 29; i >= 0; i--) {
+        const day = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+        const dayStart = new Date(day.getFullYear(), day.getMonth(), day.getDate());
+        const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+
+        const dayOrders = orders.filter((o) => {
+          const orderTime = new Date(o.created_at);
+          return orderTime >= dayStart && orderTime < dayEnd;
+        });
+
+        data.push({
+          label: String(dayStart.getDate()),
+          value: dayOrders.length,
+          revenue: dayOrders.reduce((sum, o) => sum + o.total_price, 0),
+        });
+      }
+    }
+
+    setChartData(data);
+  };
+
+  const recentOrders = orders
+    .sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at))
+    .slice(0, 6);
+
+  if (loading) {
+    return (
+      <AdminLayout title="Tổng quan">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto"></div>
+            <p className="mt-4 text-neutral-600">Đang tải...</p>
+          </div>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout title="Tổng quan">
@@ -69,28 +229,29 @@ export default function AdminDashboard() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard
           title="Đơn hôm nay"
-          value={statFmt(todayOrders)}
-          sub="+12% so với hôm qua"
+          value={stats.todayOrders}
+          sub={`${stats.pendingOrders} đang xử lý`}
           icon={<ShoppingBag className="h-5 w-5" />}
+          trend={stats.todayOrders > 0 ? "up" : undefined}
         />
         <KpiCard
-          title="Doanh thu ước tính"
-          value={statFmt(todayRevenue)}
-          currency="₫"
-          sub="+8% so với hôm qua"
+          title="Doanh thu hôm nay"
+          value={formatVnd(stats.todayRevenue)}
+          sub={`TB: ${formatVnd(stats.avgOrderValue)}/đơn`}
           icon={<BarChart3 className="h-5 w-5" />}
+          trend={stats.todayRevenue > 0 ? "up" : undefined}
         />
         <KpiCard
-          title="Khách mới"
-          value={statFmt(Math.round(todayOrders * 0.18))}
-          sub="Theo dõi theo kênh"
+          title="Khách hàng"
+          value={stats.totalCustomers}
+          sub={`${stats.newCustomers} khách mới (30 ngày)`}
           icon={<Users2 className="h-5 w-5" />}
         />
         <KpiCard
-          title="Tỉ lệ chuyển đổi"
-          value={convRate.toFixed(1)}
+          title="Tỉ lệ hoàn thành"
+          value={stats.conversionRate.toFixed(1)}
           suffix="%"
-          sub="Kênh organic tăng"
+          sub={`${stats.completedOrders} đơn hoàn thành`}
           icon={<LayoutGrid className="h-5 w-5" />}
         />
       </div>
@@ -102,7 +263,7 @@ export default function AdminDashboard() {
           <ManageTile
             to="/admin/orders"
             title="Quản lý Đơn hàng"
-            desc="Xem, đổi trạng thái, in hoá đơn"
+            desc="Xem, đổi trạng thái, in hóa đơn"
           >
             <ShoppingBag className="h-5 w-5" />
           </ManageTile>
@@ -152,10 +313,10 @@ export default function AdminDashboard() {
             <p className="text-sm text-neutral-600">
               Số lượng đơn theo{" "}
               {range === "day"
-                ? "giờ (hôm nay)"
+                ? "giờ (24h qua)"
                 : range === "week"
-                ? "ngày trong tuần"
-                : "ngày trong tháng"}
+                ? "ngày (7 ngày qua)"
+                : "ngày (30 ngày qua)"}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -180,7 +341,7 @@ export default function AdminDashboard() {
         <div className="h-72 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart
-              data={data}
+              data={chartData}
               margin={{ left: 8, right: 8, top: 10, bottom: 0 }}
             >
               <defs>
@@ -201,7 +362,11 @@ export default function AdminDashboard() {
                   borderRadius: 8,
                   borderColor: "rgb(229 231 235)",
                 }}
-                formatter={(val) => [`${val}`, "Đơn"]}
+                formatter={(val: number, name: string) => {
+                  if (name === "value") return [val, "Đơn"];
+                  if (name === "revenue") return [formatVnd(val), "Doanh thu"];
+                  return [val, name];
+                }}
                 labelStyle={{ fontWeight: 600 }}
               />
               <Area
@@ -218,26 +383,42 @@ export default function AdminDashboard() {
 
       {/* Recent orders */}
       <div className="rounded-xl border border-neutral-200 bg-white p-4">
-        <h2 className="mb-3 text-base font-extrabold">Đơn hàng gần đây</h2>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-base font-extrabold">Đơn hàng gần đây</h2>
+          <Link
+            to="/admin/orders"
+            className="text-sm font-semibold text-blue-600 hover:text-blue-700"
+          >
+            Xem tất cả
+          </Link>
+        </div>
         <ul className="divide-y">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <li key={i} className="flex items-center justify-between py-3">
+          {recentOrders.map((order) => (
+            <li
+              key={order.order_id}
+              className="flex items-center justify-between py-3"
+            >
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold">
-                  #ORD{String(1023 + i)} • Áo thun ICONDENIM • 2 sản phẩm
+                  #{order.order_id} • {order.full_name} •{" "}
+                  {order.items?.length || 0} sản phẩm
                 </p>
                 <p className="text-xs text-neutral-600">
-                  Khách: 09xx xxx 735 • COD
+                  {order.phone} • {order.payment_method.toUpperCase()} •{" "}
+                  {formatVnd(order.total_price)}
                 </p>
               </div>
               <div className="ml-3 flex items-center gap-3">
-                <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">
-                  Thành công
-                </span>
+                <StatusBadge status={order.status} />
                 <ChevronRight className="h-4 w-4 text-neutral-400" />
               </div>
             </li>
           ))}
+          {recentOrders.length === 0 && (
+            <li className="py-8 text-center text-sm text-neutral-600">
+              Chưa có đơn hàng nào
+            </li>
+          )}
         </ul>
       </div>
     </AdminLayout>
@@ -250,15 +431,15 @@ function KpiCard({
   value,
   sub,
   icon,
-  currency,
   suffix,
+  trend,
 }: {
   title: string;
   value: string | number;
   sub?: string;
   icon: React.ReactNode;
-  currency?: string;
   suffix?: string;
+  trend?: "up" | "down";
 }) {
   return (
     <div className="rounded-xl border border-neutral-200 bg-white p-4">
@@ -268,12 +449,26 @@ function KpiCard({
           {icon}
         </span>
       </div>
-      <div className="mt-2 text-2xl font-extrabold">
-        {currency ? <span className="mr-1">{currency}</span> : null}
-        {value}
-        {suffix ? (
-          <span className="ml-1 text-lg font-bold">{suffix}</span>
-        ) : null}
+      <div className="mt-2 flex items-baseline gap-2">
+        <div className="text-2xl font-extrabold">
+          {value}
+          {suffix ? (
+            <span className="ml-1 text-lg font-bold">{suffix}</span>
+          ) : null}
+        </div>
+        {trend && (
+          <span
+            className={`inline-flex items-center gap-0.5 text-xs font-semibold ${
+              trend === "up" ? "text-emerald-600" : "text-red-600"
+            }`}
+          >
+            {trend === "up" ? (
+              <TrendingUp className="h-3.5 w-3.5" />
+            ) : (
+              <TrendingDown className="h-3.5 w-3.5" />
+            )}
+          </span>
+        )}
       </div>
       {sub && <p className="mt-1 text-xs text-neutral-500">{sub}</p>}
     </div>
@@ -328,5 +523,23 @@ function RangeBtn({
     >
       {children}
     </button>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const map: Record<string, { bg: string; text: string; label: string }> = {
+    pending: { bg: "bg-amber-50", text: "text-amber-700", label: "Chờ xử lý" },
+    processing: { bg: "bg-sky-50", text: "text-sky-700", label: "Đang xử lý" },
+    shipping: { bg: "bg-indigo-50", text: "text-indigo-700", label: "Đang giao" },
+    completed: { bg: "bg-emerald-50", text: "text-emerald-700", label: "Hoàn thành" },
+    cancelled: { bg: "bg-red-50", text: "text-red-700", label: "Đã hủy" },
+  };
+  const style = map[status] || map.pending;
+  return (
+    <span
+      className={`rounded-full px-2 py-1 text-xs font-semibold ${style.bg} ${style.text}`}
+    >
+      {style.label}
+    </span>
   );
 }
