@@ -7,7 +7,7 @@ import {
   deleteOrder,
   
 } from "../controllers/order.controller";
-import { authenticateToken } from "../middleware/auth.middleware"; // nếu có
+import { authenticateToken } from "../middleware/auth.middleware"; 
 
 const router = express.Router();
 

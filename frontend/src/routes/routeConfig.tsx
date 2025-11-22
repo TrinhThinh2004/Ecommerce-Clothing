@@ -2,6 +2,8 @@ import { lazy, type ComponentType, type LazyExoticComponent } from "react";
 
 import Layout from "../components/Layout/Layout";
 import { PATHS } from "./paths";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import path from "path";
 
 // --- Public (lazy) ---
 const Home = lazy(() => import("../pages/Home/Home"));
@@ -37,6 +39,9 @@ const AdminCustomers = lazy(
   () => import("../pages/Admin/AdminCustomers/AdminCustomers")
 );
 const AdminChat = lazy(() => import("../pages/Admin/AdminChat/AdminChat"));
+const orderHistory = lazy(
+  () => import("../pages/payment/orderHistory")
+);
 
 // --- Các định nghĩa Type ---
 type PublicLayoutProps = Omit<React.ComponentProps<typeof Layout>, "children">;
@@ -138,4 +143,5 @@ export const ROUTES: RouteItem[] = [
     layout: { type: "none" },
   },
   { path: "/admin/chat", element: AdminChat, layout: { type: "none" } },
+  { path: "/order-history", element: orderHistory, layout: { type: "public" } },  
 ];

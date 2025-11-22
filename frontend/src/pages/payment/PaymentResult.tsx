@@ -93,7 +93,7 @@ export default function PaymentResult() {
             <button onClick={() => navigate("/")} className="flex-1 bg-emerald-600 text-white rounded-lg py-3 font-semibold hover:bg-emerald-700 transition">
               Về trang chủ
             </button>
-            <button onClick={() => navigate("/don-hang")} className="flex-1 border border-emerald-600 text-emerald-600 rounded-lg py-3 font-semibold hover:bg-emerald-50 transition">
+            <button onClick={() => navigate("/order-history")} className="flex-1 border border-emerald-600 text-emerald-600 rounded-lg py-3 font-semibold hover:bg-emerald-50 transition">
               Xem đơn hàng
             </button>
           </div>
