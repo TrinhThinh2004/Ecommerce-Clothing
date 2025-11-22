@@ -1,6 +1,9 @@
-import { useMemo, useState, useRef } from "react";
+// Header.tsx - Smart Category Detection
+import { useMemo, useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Logout } from "../../api/auth";
+import axios from "axios";
+import type { Product } from "../../types/product";
 import {
   Search,
   MapPin,
@@ -9,6 +12,7 @@ import {
   ChevronDown,
   Menu,
   X,
+  Loader2,
 } from "lucide-react";
 
 type NavItem = {
@@ -50,7 +54,6 @@ const NAV_ITEMS: NavItem[] = [
       { label: "Mũ", href: "/san-pham/danh-muc/8" },
     ],
   },
-
   { label: "TIN THỜI TRANG", href: "/tin-thoi-trang" },
   {
     label: "Chính Sách",
@@ -63,16 +66,76 @@ const NAV_ITEMS: NavItem[] = [
   },
 ];
 
+// Mapping keywords to categories
+const CATEGORY_KEYWORDS: Record<number, string[]> = {
+  1: [
+    "áo thun", "ao thun","áo", "t-shirt", "tshirt", "thun", 
+    "áo phông", "ao phong", "round neck", "crew neck"
+  ],
+  2: [
+    "sơ mi", "so mi", "shirt", "áo sơ mi", "ao so mi",
+    "formal shirt", "dress shirt", "caro", "sọc"
+  ],
+  3: [
+    "áo khoác", "ao khoac", "jacket", "hoodie", "cardigan",
+    "blazer", "coat", "vest", "gile"
+  ],
+  4: [
+    "jeans", "jean", "quần jean","quần", "quan jean", "denim",
+    "quần bò", "quan bo"
+  ],
+  5: [
+    "kaki", "khaki", "quần kaki", "quan kaki", "chinos"
+  ],
+  6: [
+    "jogger", "quần jogger", "quan jogger", "thể thao",
+    "the thao", "sport", "track pants"
+  ],
+  7: [
+    "dây nịt", "day nit", "thắt lưng", "that lung", "belt",
+    "dây lưng", "day lung"
+  ],
+  8: [
+    "mũ", "mu", "nón", "non", "hat", "cap", "mũ lưỡi trai"
+  ]
+};
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+// Function to detect category from search query
+const detectCategoryFromQuery = (query: string): number | null => {
+  const normalizedQuery = query.toLowerCase().trim();
+  
+  // Check each category's keywords
+  for (const [categoryId, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+    for (const keyword of keywords) {
+      if (normalizedQuery.includes(keyword)) {
+        return Number(categoryId);
+      }
+    }
+  }
+  
+  return null; // No category detected
+};
+
 export default function Header() {
-  const navigate = useNavigate(); // ✅ thêm hook điều hướng
+  const navigate = useNavigate();
   const [openMobile, setOpenMobile] = useState(false);
   const [query, setQuery] = useState("");
   const [isMenuOpen, setMenuOpen] = useState(false);
+  const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const [detectedCategory, setDetectedCategory] = useState<number | null>(null);
+  
   const menuRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
   const cartCount = 0;
 
   const primaryNav = useMemo(() => NAV_ITEMS, []);
-  // ✅ Lấy user từ localStorage
+  
   const storedUser = useMemo(() => {
     try {
       return JSON.parse(localStorage.getItem("user") || "null");
@@ -82,6 +145,58 @@ export default function Header() {
   }, []);
 
   const username = storedUser?.username || storedUser?.name || null;
+
+  // Detect category and search products
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    if (!query.trim()) {
+      setSearchResults([]);
+      setShowResults(false);
+      setDetectedCategory(null);
+      return;
+    }
+
+    // Detect category from query
+    const categoryId = detectCategoryFromQuery(query);
+    setDetectedCategory(categoryId);
+
+    setIsSearching(true);
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        const res = await axios.get<{ data: Product[] }>(
+          `${API_URL}/api/v1/products/search?query=${encodeURIComponent(query)}`
+        );
+        setSearchResults(res.data.data || []);
+        setShowResults(true);
+      } catch (error) {
+        console.error("Search error:", error);
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [query]);
+
+  // Click outside to close
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setShowResults(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -100,20 +215,73 @@ export default function Header() {
     setMenuOpen(false);
   };
 
-  // ✅ Khi nhấn Enter hoặc click nút kính lúp
+  // Handle search with smart category detection
   const handleSearch = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const q = query.trim();
-    if (q) {
+    
+    if (!q) return;
+
+    // If category detected, go to category page
+    if (detectedCategory) {
+      navigate(`/san-pham/danh-muc/${detectedCategory}`);
+    } else {
+      // Otherwise go to search page
       navigate(`/search?q=${encodeURIComponent(q)}`);
-      setQuery("");
-      setOpenMobile(false); // đóng menu mobile sau khi tìm
     }
+    
+    setQuery("");
+    setShowResults(false);
+    setOpenMobile(false);
+    setDetectedCategory(null);
+  };
+
+  // Handle clicking search icon (same as submit)
+  const handleSearchClick = () => {
+    handleSearch();
+  };
+
+  // Handle "View all results" button
+  const handleViewAllResults = () => {
+    if (detectedCategory) {
+      navigate(`/san-pham/danh-muc/${detectedCategory}`);
+    } else {
+      navigate(`/search?q=${encodeURIComponent(query)}`);
+    }
+    setQuery("");
+    setShowResults(false);
+  };
+
+  const handleProductClick = (productId: number) => {
+    navigate(`/san-pham/${productId}`);
+    setQuery("");
+    setShowResults(false);
+  };
+
+  const formatCurrency = (price: number) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND',
+    }).format(price);
+  };
+
+  const getCategoryName = (categoryId: number): string => {
+    const categoryNames: Record<number, string> = {
+      1: "Áo thun",
+      2: "Sơ mi",
+      3: "Áo khoác",
+      4: "Jeans",
+      5: "Kaki",
+      6: "Jogger",
+      7: "Dây Nịt",
+      8: "Mũ"
+    };
+    return categoryNames[categoryId] || "Danh mục";
   };
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 w-full">
-      {/* ---- Thanh trên cùng ---- */}
+      {/* Top Bar */}
       <div className="bg-black text-white">
         <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3">
           <Link to="/" className="shrink-0">
@@ -124,28 +292,126 @@ export default function Header() {
             />
           </Link>
 
-          {/* ---- Ô tìm kiếm desktop ---- */}
-          <form onSubmit={handleSearch} className="hidden md:block md:flex-1">
-            <div className="mx-auto w-full max-w-[520px] lg:max-w-[480px]">
-              <div className="flex items-stretch overflow-hidden rounded-md bg-white ring-1 ring-white/20 focus-within:ring-2 focus-within:ring-white/40">
-                <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Bạn đang tìm gì..."
-                  className="h-10 flex-1 bg-transparent px-4 text-sm text-black placeholder:text-neutral-500 outline-none"
-                />
-                <button
-                  type="submit"
-                  aria-label="Tìm kiếm"
-                  className="grid h-10 w-10 place-content-center bg-black hover:bg-black/90"
-                >
-                  <Search className="h-5 w-5 text-white cursor-pointer" />
-                </button>
+          {/* Desktop Search */}
+          <div className="hidden md:block md:flex-1 relative" ref={searchRef}>
+            <form onSubmit={handleSearch}>
+              <div className="mx-auto w-full max-w-[520px] lg:max-w-[480px]">
+                <div className="flex items-stretch overflow-hidden rounded-md bg-white ring-1 ring-white/20 focus-within:ring-2 focus-within:ring-white/40">
+                  <input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    onFocus={() => query && setShowResults(true)}
+                    placeholder="Bạn đang tìm gì..."
+                    className="h-10 flex-1 bg-transparent px-4 text-sm text-black placeholder:text-neutral-500 outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSearchClick}
+                    aria-label="Tìm kiếm"
+                    className="grid h-10 w-10 place-content-center bg-black hover:bg-gray-800"
+                  >
+                    {isSearching ? (
+                      <Loader2 className="h-5 w-5 text-white animate-spin" />
+                    ) : (
+                      <Search className="h-5 w-5 text-white" />
+                    )}
+                  </button>
+                </div>
               </div>
-            </div>
-          </form>
+            </form>
 
-          {/* ---- Icon bên phải ---- */}
+            {/* Search Results Dropdown */}
+            {showResults && (
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-full max-w-[520px] lg:max-w-[480px] bg-white rounded-lg shadow-2xl border border-gray-200 max-h-[500px] overflow-y-auto z-50">
+                {/* Category Detection Banner */}
+                {detectedCategory && (
+                  <div className="p-3 bg-blue-50 border-b border-blue-100">
+                    <p className="text-sm text-blue-800">
+                      🎯 Đang tìm trong danh mục: <span className="font-semibold">{getCategoryName(detectedCategory)}</span>
+                    </p>
+                  </div>
+                )}
+
+                {searchResults.length === 0 ? (
+                  <div className="p-6 text-center text-gray-500">
+                    {isSearching ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <span>Đang tìm kiếm...</span>
+                      </div>
+                    ) : (
+                      <div>
+                        <p className="mb-2">Không tìm thấy sản phẩm nào</p>
+                        {detectedCategory && (
+                          <button
+                            onClick={handleViewAllResults}
+                            className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                          >
+                            Xem tất cả sản phẩm trong danh mục {getCategoryName(detectedCategory)} →
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    <div className="p-3 border-b bg-gray-50">
+                      <p className="text-sm font-semibold text-gray-700">
+                        Tìm thấy {searchResults.length} sản phẩm
+                      </p>
+                    </div>
+                    <div className="divide-y">
+                      {searchResults.slice(0, 5).map((product) => (
+                        <button
+                          key={product.product_id}
+                          onClick={() => handleProductClick(product.product_id)}
+                          className="w-full p-3 hover:bg-gray-50 transition-colors flex items-center gap-3 text-left"
+                        >
+                          <div className="w-16 h-16 flex-shrink-0 bg-gray-100 rounded overflow-hidden">
+                            <img
+                              src={
+                                product.image_url
+                                  ? `${API_URL}${product.image_url}`
+                                  : "https://via.placeholder.com/100"
+                              }
+                              alt={product.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src =
+                                  "https://via.placeholder.com/100?text=No+Image";
+                              }}
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium text-sm text-gray-900 truncate">
+                              {product.name}
+                            </h4>
+                            <p className="text-xs text-gray-500 truncate mt-1">
+                              {product.description || "Không có mô tả"}
+                            </p>
+                            <p className="text-sm font-bold text-black mt-1">
+                              {formatCurrency(product.price)}
+                            </p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      onClick={handleViewAllResults}
+                      className="w-full p-3 text-center text-sm font-semibold text-black hover:bg-gray-50 border-t"
+                    >
+                      {detectedCategory 
+                        ? `Xem tất cả trong danh mục ${getCategoryName(detectedCategory)} →`
+                        : `Xem tất cả ${searchResults.length} kết quả →`
+                      }
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Right Icons */}
           <nav className="ml-auto hidden items-center gap-6 md:flex">
             <Link
               to="/he-thong-cua-hang"
@@ -162,7 +428,6 @@ export default function Header() {
                   className="flex items-center gap-1.5 hover:opacity-90"
                 >
                   <User2 className="h-5 w-5" />
-                  {/* ✅ Hiển thị tên */}
                   <span className="text-sm font-semibold">
                     Xin chào, {username || "Người dùng"}
                   </span>
@@ -215,7 +480,7 @@ export default function Header() {
             </Link>
           </nav>
 
-          {/* ---- Mobile icon ---- */}
+          {/* Mobile Icons */}
           <div className="ml-auto flex items-center gap-2 md:hidden">
             <button
               className="grid h-9 w-9 place-content-center rounded-md bg-white"
@@ -240,9 +505,9 @@ export default function Header() {
         </div>
       </div>
 
-      {/* ---- Thanh menu chính ---- */}
+      {/* Main Menu */}
       <div className="border-b border-neutral-200 bg-white">
-        {/* Desktop menu */}
+        {/* Desktop Menu */}
         <div className="mx-auto hidden items-center px-4 md:flex justify-center">
           <ul className="flex items-center gap-2 py-3 text-sm font-bold">
             {primaryNav.map((item) => (
@@ -278,7 +543,7 @@ export default function Header() {
           </ul>
         </div>
 
-        {/* ---- Mobile menu ---- */}
+        {/* Mobile Menu */}
         <div className="md:hidden">
           <div className="px-4 py-2">
             <div className="relative">
@@ -286,12 +551,12 @@ export default function Header() {
                 id="m-search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSearch()} // ✅ enter để tìm
+                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                 placeholder="Bạn đang tìm gì..."
                 className="w-full rounded-md border border-neutral-300 px-3 py-2 pr-10 text-sm focus:outline-none"
               />
               <button
-                onClick={() => handleSearch()}
+                onClick={handleSearchClick}
                 className="absolute right-2 top-1/2 -translate-y-1/2"
               >
                 <Search className="h-5 w-5 text-neutral-600" />

@@ -12,7 +12,7 @@ import upload from "../middleware/upload.middleware";
 
 const router = Router();
 
-// ✅ Route để lấy tất cả sản phẩm (chuẩn RESTful)
+// Route để lấy tất cả sản phẩm (chuẩn RESTful)
 router.get("/", getAllProducts);
 router.get("/search", searchProducts);
 router.get("/:id", getProductById);
