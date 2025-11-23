@@ -13,11 +13,13 @@ import {
   clearCart,
 } from "../../api/cart";
 import axiosInstance from "../../api/client";
+import { toast } from "react-toastify";
 
 
 const INPUT_CLS =
   "h-11 w-full rounded-md border border-neutral-300 px-3 text-sm outline-none focus:border-black";
 
+  
 export default function Cart() {
   const [items, setItems] = useState<LocalCartItem[]>([]);
   const [loading, setLoading] = useState(true);
