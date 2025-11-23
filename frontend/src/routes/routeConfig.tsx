@@ -42,7 +42,9 @@ const AdminChat = lazy(() => import("../pages/Admin/AdminChat/AdminChat"));
 const orderHistory = lazy(
   () => import("../pages/payment/orderHistory")
 );
-
+const AdminReviews = lazy(
+  () => import("../pages/Admin/AdminReviews/AdminReviews")
+);
 // --- Các định nghĩa Type ---
 type PublicLayoutProps = Omit<React.ComponentProps<typeof Layout>, "children">;
 type PageElement =
@@ -143,5 +145,6 @@ export const ROUTES: RouteItem[] = [
     layout: { type: "none" },
   },
   { path: "/admin/chat", element: AdminChat, layout: { type: "none" } },
-  { path: "/order-history", element: orderHistory, layout: { type: "public" } },  
+  { path: "/order-history", element: orderHistory, layout: { type: "public" } },
+  {path: PATHS.ADMIN_REVIEWS, element: AdminReviews, layout: { type: "none" }},  
 ];

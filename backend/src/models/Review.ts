@@ -1,6 +1,7 @@
-// src/models/Review.ts
 import { DataTypes, Model, Optional } from "sequelize";
 import sequelize from "../config/database";
+import User from "./User";
+import Product from "./Product";
 
 interface ReviewAttributes {
   review_id: number;
@@ -28,10 +29,6 @@ class Review
   public status!: "pending" | "approved" | "rejected";
   public readonly created_at!: Date;
   public readonly updated_at!: Date;
-
-  // Timestamps
-  public readonly createdAt!: Date;
-  public readonly updatedAt!: Date;
 }
 
 Review.init(
@@ -94,5 +91,11 @@ Review.init(
     updatedAt: "updated_at",
   }
 );
+
+// ✅ Associations
+Review.belongsTo(User, { foreignKey: "user_id", as: "user" });
+Review.belongsTo(Product, { foreignKey: "product_id", as: "product" });
+User.hasMany(Review, { foreignKey: "user_id", as: "reviews" });
+Product.hasMany(Review, { foreignKey: "product_id", as: "reviews" });
 
 export default Review;

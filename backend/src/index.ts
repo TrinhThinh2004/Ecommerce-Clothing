@@ -18,7 +18,7 @@ import cart from "./routes/cart";
 import orderRoutes from "./routes/order";
 import paymentRoutes from "./routes/payment"
 import chatRoutes from "./routes/chat";
-
+import reviewRoutes from "./routes/review";
 
 dotenv.config();
 
@@ -48,7 +48,7 @@ app.use("/api/v1/order-items", orderItemRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/v1/chat", chatRoutes);
 
-
+app.use("/api/v1/", reviewRoutes);
 
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 5000;

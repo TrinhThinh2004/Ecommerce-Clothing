@@ -15,5 +15,6 @@ FASHION_NEWS: "/tin-thoi-trang",
   ADMIN_CUSTOMERS: "/admin/customers",
   PAYMENT_RESULT: "/payment-result",
   ADMIN_SETTINGS: "/admin/settings",
+  ADMIN_REVIEWS: "/admin/reviews",
   // ADMIN_SETTINGS: "/admin/settings", ...
 } as const;
