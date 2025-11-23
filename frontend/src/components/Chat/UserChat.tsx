@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useMemo } from "react";
 import { io, Socket } from "socket.io-client";
+import { getChatHistory } from "../../api/chat";
 import { MessageSquare, X } from "lucide-react";
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:5000";
@@ -52,10 +53,18 @@ export default function UserChat({ onOpenChange, rightOffset = 24, bottomOffset 
         if (name) {
           setUsername(String(name));
           setConnected(true);
+          if (u.user_id) {
+            getChatHistory(u.user_id)
+              .then((hist: any[]) => {
+                setMessages(
+                  (hist || []).map((m: any) => ({ sender: m.sender?.username || m.sender_id || m.sender, text: m.content || m.text, message_id: m.message_id, created_at: m.created_at, is_from_admin: m.is_from_admin }))
+                );
+              })
+              .catch(() => {});
+          }
         }
       }
     } catch (err) {
-      // ignore
     }
   }, []);
 
@@ -66,7 +75,6 @@ export default function UserChat({ onOpenChange, rightOffset = 24, bottomOffset 
 
   const sendPrivateMessage = () => {
     if (!message || !socketRef.current) return;
-    // send to admin; server will handle routing and saving
     const payload = { receiver: 'admin', content: message };
     socketRef.current.emit("private_message", payload);
     setMessages((prev) => [...prev, { sender: username, text: message }]);

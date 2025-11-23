@@ -156,15 +156,45 @@ io.on('connection', (socket) => {
         receiver_id = Number(receiver);
       }
 
-      // save message to DB
+      if (!sender_id && sender_username) {
+        try {
+          const [found, created] = await User.findOrCreate({
+            where: { username: sender_username },
+            defaults: {
+              username: sender_username,
+              email: `${sender_username}@guest.local`,
+              password_hash: "", // placeholder for guest
+              role: 'user',
+            },
+          });
+          sender_id = Number((found as any).user_id || (found as any).id);
+          if (created) {
+            console.log(`Created guest user for chat: ${sender_username} -> id=${sender_id}`);
+          }
+        } catch (err) {
+          console.warn('Error findOrCreate guest user:', err);
+        }
+      }
+
       if (sender_id && receiver_id) {
+        // create owner record for sender
         await Message.create({
           sender_id: Number(sender_id),
-          receiver_id,
+          receiver_id: receiver_id ?? null,
+          owner_id: Number(sender_id),
           content: payload.content,
           is_from_admin: payload.is_from_admin || false,
         });
-        // console.log(`Message saved: sender=${sender_id}, receiver=${receiver_id}, content=${payload.content.substring(0, 50)}`);
+
+        // create owner record for receiver
+        await Message.create({
+          sender_id: Number(sender_id),
+          receiver_id: receiver_id ?? null,
+          owner_id: Number(receiver_id),
+          content: payload.content,
+          is_from_admin: payload.is_from_admin || false,
+        });
+        // console.log(`Message saved (owner records): sender=${sender_id}, receiver=${receiver_id}`);
       } else {
         console.warn(`Cannot save message: sender_id=${sender_id}, receiver_id=${receiver_id}`);
       }
@@ -203,7 +233,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', (reason) => {
-    console.log('Socket disconnected', socket.id, reason);
+    // console.log('Socket disconnected', socket.id, reason);
     // cleanup mappings
     if (socket.data?.user) {
       const uid = Number(socket.data.user.user_id);

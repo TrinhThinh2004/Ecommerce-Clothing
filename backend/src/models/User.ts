@@ -42,6 +42,11 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
     const roleHierarchy = { admin: 2, user: 1 };
     return roleHierarchy[this.role] >= roleHierarchy[requiredRole];
   }
+  
+  // Associations
+  public static associate(models: any): void {
+    User.hasMany(models.Message, { foreignKey: 'sender_id', as: 'sentMessages' });
+  }
 }
 
 User.init(

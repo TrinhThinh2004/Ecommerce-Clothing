@@ -1,4 +1,4 @@
-// src/controllers/admin.controller.ts
+
 import { Request, Response } from "express";
 import User from "../models/User";
 import Order from "../models/Order";
@@ -6,12 +6,7 @@ import OrderItem from "../models/OrderItem";
 import Product from "../models/Product";
 import { Op } from "sequelize";
 
-/* ================= CUSTOMERS ================= */
 
-/**
- * Lấy danh sách tất cả khách hàng với thống kê đơn hàng
- * GET /api/v1/admin/customers
- */
 export const getAllCustomers = async (req: Request, res: Response) => {
   try {
     const users = await User.findAll({
@@ -23,6 +18,7 @@ export const getAllCustomers = async (req: Request, res: Response) => {
         "role",
         "created_at",
       ],
+      where: { role: { [Op.ne]: "admin" } },
       order: [["created_at", "DESC"]],
     });
 

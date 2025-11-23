@@ -1,4 +1,3 @@
-// src/pages/Cart/Cart.tsx
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Trash2, Plus, Minus, CreditCard, Truck, Wallet } from "lucide-react";
@@ -25,7 +24,6 @@ export default function Cart() {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Thông tin giao hàng
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
@@ -34,14 +32,13 @@ export default function Cart() {
   const [ward, setWard] = useState("");
   const [note, setNote] = useState("");
 
-  // Thanh toán & voucher
   const [pay, setPay] = useState<"cod" | "vnpay" | "momo">("cod");
   const [voucher, setVoucher] = useState("");
   const [applied, setApplied] = useState<{ code?: string; amount: number }>({
     amount: 0,
   });
 
-  /* ========= Load Cart ========= */
+
   const loadCart = async () => {
     setLoading(true);
     try {
@@ -70,7 +67,7 @@ export default function Cart() {
     };
   }, []);
 
-  /* ========= Calculations ========= */
+
   const subTotal = useMemo(
     () => items.reduce((s, it) => s + it.item.price * it.qty, 0),
     [items]
@@ -84,14 +81,13 @@ export default function Cart() {
   const discount = applied.amount;
   const grand = Math.max(0, subTotal + ship - discount);
 
-  /* ========= Handlers ========= */
   const changeQty = async (cart_id: number, delta: number) => {
     const target = items.find((it) => it.cart_id === cart_id);
     if (!target) return;
 
     const newQty = Math.max(1, target.qty + delta);
 
-    // Optimistic update
+
     setItems((prev) =>
       prev.map((it) => (it.cart_id === cart_id ? { ...it, qty: newQty } : it))
     );
@@ -149,7 +145,6 @@ export default function Cart() {
     }
   };
 
-  /* ========= PLACE ORDER - FIXED ========= */
  const placeOrder = async () => {
   if (!items.length) {
     toast.warning(" Giỏ hàng trống.");
@@ -207,12 +202,10 @@ export default function Cart() {
 
     const orderId = res.data.data.order_id;
 
-    //  Nếu chọn VNPAY thì gọi API backend để tạo URL thanh toán
     if (pay === "vnpay") {
       try {
         console.log(" Creating VNPay payment URL for order:", orderId, "amount:", grand);
-        
-        // Gọi API backend để tạo URL thanh toán VNPay với chữ ký hợp lệ
+    
         const paymentRes = await axiosInstance.post("/api/payment/create", {
           amount: grand,
           orderId: orderId.toString(),
@@ -244,7 +237,7 @@ export default function Cart() {
       }
     }
 
-    //  Nếu không phải VNPAY thì giữ luồng cũ (COD hoặc Momo)
+
     await clearCart();
     setItems([]);
     window.dispatchEvent(new Event("cartUpdated"));
@@ -279,7 +272,7 @@ export default function Cart() {
 
 
 
-  /* ========= RENDER ========= */
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
