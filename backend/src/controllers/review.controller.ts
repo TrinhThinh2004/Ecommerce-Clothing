@@ -1,68 +1,42 @@
-// src/routes/reviews.ts
-import { Router, Request, Response } from "express";
+import { Request, Response } from "express";
 import Review from "../models/Review";
 import User from "../models/User";
 import Product from "../models/Product";
-import { authenticateToken } from "../middleware/auth.middleware";
-import { checkAdmin } from "../middleware/checkAdmin.middleware";
-import { Op } from "sequelize";
 
-const router = Router();
-
-// =====================================================
-// PUBLIC ROUTES - Không cần đăng nhập
-// =====================================================
-
-/**
- * GET /api/v1/products/:productId/reviews
- * Lấy tất cả reviews đã duyệt của một sản phẩm
- */
-router.get("/products/:productId/reviews", async (req: Request, res: Response) => {
+// PUBLIC: Get approved reviews for a product
+export const getProductReviews = async (req: Request, res: Response) => {
   try {
     const { productId } = req.params;
 
     const reviews = await Review.findAll({
-      where: {
-        product_id: productId,
-        status: "approved",
-      },
+      where: { product_id: productId, status: "approved" },
       include: [
         {
           model: User,
           as: "user",
-          attributes: ["user_id", "username", "email"],
+          attributes: ["user_id", "username"],
         },
       ],
       order: [["created_at", "DESC"]],
     });
 
-    res.json({
-      success: true,
-      data: reviews,
-    });
-  } catch (error) {
-    console.error("Error fetching product reviews:", error);
+    res.json({ success: true, data: reviews });
+  } catch (error: any) {
     res.status(500).json({
       success: false,
       message: "Không thể tải đánh giá",
-      error: error instanceof Error ? error.message : "Unknown error",
+      error: error.message,
     });
   }
-});
+};
 
-/**
- * GET /api/v1/products/:productId/reviews/stats
- * Lấy thống kê đánh giá của sản phẩm
- */
-router.get("/products/:productId/reviews/stats", async (req: Request, res: Response) => {
+// PUBLIC: Get review statistics
+export const getReviewStats = async (req: Request, res: Response) => {
   try {
     const { productId } = req.params;
 
     const reviews = await Review.findAll({
-      where: {
-        product_id: productId,
-        status: "approved",
-      },
+      where: { product_id: productId, status: "approved" },
       attributes: ["rating"],
     });
 
@@ -88,30 +62,21 @@ router.get("/products/:productId/reviews/stats", async (req: Request, res: Respo
         ratingDistribution,
       },
     });
-  } catch (error) {
-    console.error("Error fetching review stats:", error);
+  } catch (error: any) {
     res.status(500).json({
       success: false,
-      message: "Không thể tải thống kê đánh giá",
-      error: error instanceof Error ? error.message : "Unknown error",
+      message: "Không thể tải thống kê",
+      error: error.message,
     });
   }
-});
+};
 
-// =====================================================
-// PROTECTED ROUTES - Cần đăng nhập
-// =====================================================
-
-/**
- * POST /api/v1/reviews
- * Tạo đánh giá mới
- */
-router.post("/reviews", authenticateToken, async (req: Request, res: Response) => {
+// USER: Create a review
+export const createReview = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.user_id;
     const { product_id, rating, comment } = req.body;
 
-    // Validate input
     if (!product_id || !rating || !comment) {
       return res.status(400).json({
         success: false,
@@ -126,7 +91,7 @@ router.post("/reviews", authenticateToken, async (req: Request, res: Response) =
       });
     }
 
-    // Kiểm tra sản phẩm có tồn tại không
+    // Check if product exists
     const product = await Product.findByPk(product_id);
     if (!product) {
       return res.status(404).json({
@@ -135,12 +100,9 @@ router.post("/reviews", authenticateToken, async (req: Request, res: Response) =
       });
     }
 
-    // Kiểm tra user đã review chưa
+    // Check if user already reviewed
     const existingReview = await Review.findOne({
-      where: {
-        user_id: userId,
-        product_id,
-      },
+      where: { user_id: userId, product_id },
     });
 
     if (existingReview) {
@@ -150,7 +112,7 @@ router.post("/reviews", authenticateToken, async (req: Request, res: Response) =
       });
     }
 
-    // Tạo review mới
+    // Create review
     const newReview = await Review.create({
       product_id,
       user_id: userId,
@@ -159,13 +121,12 @@ router.post("/reviews", authenticateToken, async (req: Request, res: Response) =
       status: "pending",
     });
 
-    // Load user data
     const reviewWithUser = await Review.findByPk(newReview.review_id, {
       include: [
         {
           model: User,
           as: "user",
-          attributes: ["user_id", "username", "email"],
+          attributes: ["user_id", "username"],
         },
       ],
     });
@@ -175,58 +136,44 @@ router.post("/reviews", authenticateToken, async (req: Request, res: Response) =
       message: "Đã gửi đánh giá. Đang chờ duyệt!",
       data: reviewWithUser,
     });
-  } catch (error) {
-    console.error("Error creating review:", error);
+  } catch (error: any) {
     res.status(500).json({
       success: false,
       message: "Không thể tạo đánh giá",
-      error: error instanceof Error ? error.message : "Unknown error",
+      error: error.message,
     });
   }
-});
+};
 
-/**
- * GET /api/v1/reviews/check/:productId
- * Kiểm tra user đã review sản phẩm này chưa
- */
-router.get("/reviews/check/:productId", authenticateToken, async (req: Request, res: Response) => {
+// USER: Check if user has reviewed a product
+export const checkUserReview = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.user_id;
     const { productId } = req.params;
 
     const review = await Review.findOne({
-      where: {
-        user_id: userId,
-        product_id: productId,
-      },
+      where: { user_id: userId, product_id: productId },
       include: [
         {
           model: User,
           as: "user",
-          attributes: ["user_id", "username", "email"],
+          attributes: ["user_id", "username"],
         },
       ],
     });
 
-    res.json({
-      success: true,
-      data: review,
-    });
-  } catch (error) {
-    console.error("Error checking user review:", error);
+    res.json({ success: true, data: review });
+  } catch (error: any) {
     res.status(500).json({
       success: false,
       message: "Không thể kiểm tra đánh giá",
-      error: error instanceof Error ? error.message : "Unknown error",
+      error: error.message,
     });
   }
-});
+};
 
-/**
- * PATCH /api/v1/reviews/:reviewId
- * Cập nhật đánh giá của mình
- */
-router.patch("/reviews/:reviewId", authenticateToken, async (req: Request, res: Response) => {
+// USER: Update own review
+export const updateReview = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.user_id;
     const { reviewId } = req.params;
@@ -241,7 +188,6 @@ router.patch("/reviews/:reviewId", authenticateToken, async (req: Request, res: 
       });
     }
 
-    // Kiểm tra quyền sở hữu
     if (review.user_id !== userId) {
       return res.status(403).json({
         success: false,
@@ -249,7 +195,6 @@ router.patch("/reviews/:reviewId", authenticateToken, async (req: Request, res: 
       });
     }
 
-    // Update
     if (rating !== undefined) {
       if (rating < 1 || rating > 5) {
         return res.status(400).json({
@@ -264,7 +209,6 @@ router.patch("/reviews/:reviewId", authenticateToken, async (req: Request, res: 
       review.comment = comment;
     }
 
-    // Reset status về pending khi sửa
     review.status = "pending";
     await review.save();
 
@@ -273,7 +217,7 @@ router.patch("/reviews/:reviewId", authenticateToken, async (req: Request, res: 
         {
           model: User,
           as: "user",
-          attributes: ["user_id", "username", "email"],
+          attributes: ["user_id", "username"],
         },
       ],
     });
@@ -283,21 +227,17 @@ router.patch("/reviews/:reviewId", authenticateToken, async (req: Request, res: 
       message: "Đã cập nhật đánh giá",
       data: updatedReview,
     });
-  } catch (error) {
-    console.error("Error updating review:", error);
+  } catch (error: any) {
     res.status(500).json({
       success: false,
       message: "Không thể cập nhật đánh giá",
-      error: error instanceof Error ? error.message : "Unknown error",
+      error: error.message,
     });
   }
-});
+};
 
-/**
- * DELETE /api/v1/reviews/:reviewId
- * Xóa đánh giá của mình
- */
-router.delete("/reviews/:reviewId", authenticateToken, async (req: Request, res: Response) => {
+// USER: Delete own review
+export const deleteReview = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.user_id;
     const { reviewId } = req.params;
@@ -311,7 +251,6 @@ router.delete("/reviews/:reviewId", authenticateToken, async (req: Request, res:
       });
     }
 
-    // Kiểm tra quyền sở hữu
     if (review.user_id !== userId) {
       return res.status(403).json({
         success: false,
@@ -325,25 +264,17 @@ router.delete("/reviews/:reviewId", authenticateToken, async (req: Request, res:
       success: true,
       message: "Đã xóa đánh giá",
     });
-  } catch (error) {
-    console.error("Error deleting review:", error);
+  } catch (error: any) {
     res.status(500).json({
       success: false,
       message: "Không thể xóa đánh giá",
-      error: error instanceof Error ? error.message : "Unknown error",
+      error: error.message,
     });
   }
-});
+};
 
-// =====================================================
-// ADMIN ROUTES - Cần quyền admin
-// =====================================================
-
-/**
- * GET /api/v1/admin/reviews
- * Lấy tất cả đánh giá (admin only)
- */
-router.get("/admin/reviews", authenticateToken, checkAdmin, async (req: Request, res: Response) => {
+// ADMIN: Get all reviews
+export const getAllReviews = async (req: Request, res: Response) => {
   try {
     const reviews = await Review.findAll({
       include: [
@@ -361,114 +292,95 @@ router.get("/admin/reviews", authenticateToken, checkAdmin, async (req: Request,
       order: [["created_at", "DESC"]],
     });
 
-    res.json({
-      success: true,
-      data: reviews,
-    });
-  } catch (error) {
-    console.error("Error fetching all reviews:", error);
+    res.json({ success: true, data: reviews });
+  } catch (error: any) {
     res.status(500).json({
       success: false,
       message: "Không thể tải danh sách đánh giá",
-      error: error instanceof Error ? error.message : "Unknown error",
+      error: error.message,
     });
   }
-});
+};
 
-/**
- * PATCH /api/v1/admin/reviews/:reviewId/status
- * Cập nhật trạng thái đánh giá (admin only)
- */
-router.patch(
-  "/admin/reviews/:reviewId/status",
-  authenticateToken,
-  checkAdmin,
-  async (req: Request, res: Response) => {
-    try {
-      const { reviewId } = req.params;
-      const { status } = req.body;
+// ADMIN: Update review status
+export const updateReviewStatus = async (req: Request, res: Response) => {
+  try {
+    const { reviewId } = req.params;
+    const { status } = req.body;
 
-      if (!["pending", "approved", "rejected"].includes(status)) {
-        return res.status(400).json({
-          success: false,
-          message: "Trạng thái không hợp lệ",
-        });
-      }
-
-      const review = await Review.findByPk(reviewId);
-
-      if (!review) {
-        return res.status(404).json({
-          success: false,
-          message: "Không tìm thấy đánh giá",
-        });
-      }
-
-      review.status = status;
-      await review.save();
-
-      const updatedReview = await Review.findByPk(reviewId, {
-        include: [
-          {
-            model: User,
-            as: "user",
-            attributes: ["user_id", "username", "email"],
-          },
-        ],
-      });
-
-      res.json({
-        success: true,
-        message: `Đã ${status === "approved" ? "duyệt" : "từ chối"} đánh giá`,
-        data: updatedReview,
-      });
-    } catch (error) {
-      console.error("Error updating review status:", error);
-      res.status(500).json({
+    if (!["pending", "approved", "rejected"].includes(status)) {
+      return res.status(400).json({
         success: false,
-        message: "Không thể cập nhật trạng thái",
-        error: error instanceof Error ? error.message : "Unknown error",
+        message: "Trạng thái không hợp lệ",
       });
     }
-  }
-);
 
-/**
- * DELETE /api/v1/admin/reviews/:reviewId
- * Xóa đánh giá (admin only)
- */
-router.delete(
-  "/admin/reviews/:reviewId",
-  authenticateToken,
-  checkAdmin,
-  async (req: Request, res: Response) => {
-    try {
-      const { reviewId } = req.params;
+    const review = await Review.findByPk(reviewId);
 
-      const review = await Review.findByPk(reviewId);
-
-      if (!review) {
-        return res.status(404).json({
-          success: false,
-          message: "Không tìm thấy đánh giá",
-        });
-      }
-
-      await review.destroy();
-
-      res.json({
-        success: true,
-        message: "Đã xóa đánh giá",
-      });
-    } catch (error) {
-      console.error("Error deleting review (admin):", error);
-      res.status(500).json({
+    if (!review) {
+      return res.status(404).json({
         success: false,
-        message: "Không thể xóa đánh giá",
-        error: error instanceof Error ? error.message : "Unknown error",
+        message: "Không tìm thấy đánh giá",
       });
     }
-  }
-);
 
-export default router;
+    review.status = status;
+    await review.save();
+
+    const updatedReview = await Review.findByPk(reviewId, {
+      include: [
+        {
+          model: User,
+          as: "user",
+          attributes: ["user_id", "username", "email"],
+        },
+        {
+          model: Product,
+          as: "product",
+          attributes: ["product_id", "name", "image_url"],
+        },
+      ],
+    });
+
+    res.json({
+      success: true,
+      message: `Đã ${status === "approved" ? "duyệt" : "từ chối"} đánh giá`,
+      data: updatedReview,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: "Không thể cập nhật trạng thái",
+      error: error.message,
+    });
+  }
+};
+
+// ADMIN: Delete review
+export const deleteReviewAdmin = async (req: Request, res: Response) => {
+  try {
+    const { reviewId } = req.params;
+
+    const review = await Review.findByPk(reviewId);
+
+    if (!review) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy đánh giá",
+      });
+    }
+
+    await review.destroy();
+
+    res.json({
+      success: true,
+      message: "Đã xóa đánh giá",
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: "Không thể xóa đánh giá",
+      error: error.message,
+    });
+  }
+};

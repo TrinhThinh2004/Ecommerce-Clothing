@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -7,114 +8,102 @@ import {
   Truck,
   ShieldCheck,
   Star,
-  CheckCircle,
   XCircle,
+  Edit,
+  Trash2,
+  Send,
 } from "lucide-react";
 import { addToCart as addToCartAPI } from "../../api/cart";
 import type { Product } from "../../types/product";
 import { formatVnd } from "../../utils/format";
 import { toast } from "react-toastify";
-
-
-type Review = {
-  id: string;
-  user: string;
-  rating: 1 | 2 | 3 | 4 | 5;
-  comment: string;
-  createdAt: string;
-};
-
-
-const REVIEWS: Review[] = [
-  {
-    id: "r1",
-    user: "Nguyễn Minh",
-    rating: 5,
-    comment: "Áo đẹp, chất dày vừa, form chuẩn. Sẽ ủng hộ tiếp!",
-    createdAt: "2025-08-02T12:30:00Z",
-  },
-  {
-    id: "r2",
-    user: "Trần Bảo",
-    rating: 4,
-    comment: "Màu đẹp, mặc thoải mái. Góp ý: giao nhanh hơn chút là perfect.",
-    createdAt: "2025-08-01T09:05:00Z",
-  },
-  {
-    id: "r3",
-    user: "Lê Hồng",
-    rating: 5,
-    comment: "Đúng mô tả, form regular dễ phối đồ.",
-    createdAt: "2025-07-29T15:10:00Z",
-  },
-];
-
-function avgRating(list: Review[]): number {
-  if (!list.length) return 0;
-  const sum = list.reduce((s, r) => s + r.rating, 0);
-  return Math.round((sum / list.length) * 10) / 10;
-}
-
-function countByStar(list: Review[]): Record<1 | 2 | 3 | 4 | 5, number> {
-  return {
-    5: list.filter((r) => r.rating === 5).length,
-    4: list.filter((r) => r.rating === 4).length,
-    3: list.filter((r) => r.rating === 3).length,
-    2: list.filter((r) => r.rating === 2).length,
-    1: list.filter((r) => r.rating === 1).length,
-  };
-}
-
-function formatDateVN(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleDateString("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
-}
-
+import {
+  fetchProductReviews,
+  fetchReviewStats,
+  createReview,
+  checkUserReview,
+  updateReview,
+  deleteReview,
+  type Review,
+  type ReviewStats,
+} from "../../api/review";
 
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
+  // Product state
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [size, setSize] = useState<string | undefined>();
   const [qty, setQty] = useState(1);
   const [showSizeGuide, setShowSizeGuide] = useState(false);
 
+  // Review state
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [stats, setStats] = useState<ReviewStats>({
+    averageRating: 0,
+    totalReviews: 0,
+    ratingDistribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
+  });
+  const [userReview, setUserReview] = useState<Review | null>(null);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState("");
 
   useEffect(() => {
-    async function fetchProduct() {
-      try {
-        const res = await fetch(`http://localhost:5000/api/v1/products/${id}`);
-        const data = await res.json();
-        setProduct(data?.data || data);
-      } catch (err) {
-        console.error("Lỗi tải sản phẩm:", err);
-        toast.error("Không thể tải thông tin sản phẩm");
-      } finally {
-        setLoading(false);
-      }
+    if (id) {
+      fetchProduct();
+      loadReviews();
+      checkUserHasReviewed();
     }
-    fetchProduct();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  // const showToast = (type: "success" | "error", message: string) => {
-  //   setToast({ show: true, type, message });
-  //   setTimeout(() => {
-  //     setToast({ show: false, type, message: "" });
-  //   }, 3000);
-  // };
+  const fetchProduct = async () => {
+    try {
+      const res = await fetch(`http://localhost:5000/api/v1/products/${id}`);
+      const data = await res.json();
+      setProduct(data?.data || data);
+    } catch (err) {
+      console.error("Lỗi tải sản phẩm:", err);
+      toast.error("Không thể tải thông tin sản phẩm");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadReviews = async () => {
+    try {
+      const [reviewsData, statsData] = await Promise.all([
+        fetchProductReviews(Number(id)),
+        fetchReviewStats(Number(id)),
+      ]);
+      setReviews(reviewsData);
+      setStats(statsData);
+    } catch (err) {
+      console.error("Error loading reviews:", err);
+    }
+  };
+
+  const checkUserHasReviewed = async () => {
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) return;
+
+      const review = await checkUserReview(Number(id));
+      setUserReview(review);
+    } catch (err) {
+      console.error("Error checking user review:", err);
+    }
+  };
 
   const requireLogin = (callback: () => void) => {
     const token = localStorage.getItem("accessToken");
     if (!token) {
       if (
         window.confirm(
-          "⚠️ Bạn cần đăng nhập để tiếp tục. Bạn có muốn chuyển đến trang đăng nhập không?"
+          " Bạn cần đăng nhập để tiếp tục. Bạn có muốn chuyển đến trang đăng nhập không?"
         )
       ) {
         navigate("/dang-nhap");
@@ -136,45 +125,95 @@ export default function ProductDetail() {
       return;
     }
 
- 
     const token = localStorage.getItem("accessToken");
     if (!token) {
-      toast.error("⚠️ Vui lòng đăng nhập để thêm vào giỏ!");
+      toast.error(" Vui lòng đăng nhập để thêm vào giỏ!");
       setTimeout(() => navigate("/dang-nhap"), 1000);
       return;
     }
 
     try {
- 
       const result = await addToCartAPI(product.product_id, qty, size);
 
       if (result) {
- 
         toast.success(` Đã thêm ${qty} sản phẩm vào giỏ!`);
-
-      
         window.dispatchEvent(new Event("cartUpdated"));
 
-  
         if (buyNow) {
           setTimeout(() => {
             navigate("/gio-hang");
           }, 500);
         }
       } else {
-        toast.error("❌ Không thể thêm vào giỏ. Vui lòng thử lại!");
+        toast.error(" Không thể thêm vào giỏ. Vui lòng thử lại!");
       }
     } catch (error) {
       console.error("Error adding to cart:", error);
-      const errorMsg =
-        error instanceof Error && error.message === "Chưa đăng nhập"
-          ? "Vui lòng đăng nhập để thêm vào giỏ!"
-          : "Có lỗi xảy ra. Vui lòng thử lại!";
-      toast.error(errorMsg);
+      toast.error("Có lỗi xảy ra. Vui lòng thử lại!");
+    }
+  };
 
-      if (error instanceof Error && error.message === "Chưa đăng nhập") {
-        setTimeout(() => navigate("/dang-nhap"), 1000);
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      toast.warning(" Vui lòng đăng nhập để đánh giá");
+      navigate("/dang-nhap");
+      return;
+    }
+
+    if (!comment.trim()) {
+      toast.error(" Vui lòng nhập nội dung đánh giá");
+      return;
+    }
+
+    try {
+      if (userReview) {
+        await updateReview(userReview.review_id, { rating, comment });
+        toast.success(" Đã cập nhật đánh giá của bạn!");
+      } else {
+        await createReview({
+          product_id: Number(id),
+          rating,
+          comment,
+        });
+        toast.success(" Đã gửi đánh giá! Đang chờ duyệt.");
       }
+
+      setShowReviewForm(false);
+      setComment("");
+      setRating(5);
+      loadReviews();
+      checkUserHasReviewed();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      console.error("Error submitting review:", err);
+      toast.error(err.response?.data?.message || " Không thể gửi đánh giá");
+    }
+  };
+
+  const handleDeleteReview = async () => {
+    if (!userReview) return;
+
+    if (!window.confirm("Bạn có chắc muốn xóa đánh giá này?")) return;
+
+    try {
+      await deleteReview(userReview.review_id);
+      toast.success(" Đã xóa đánh giá");
+      setUserReview(null);
+      loadReviews();
+    } catch (err) {
+      console.error("Error deleting review:", err);
+      toast.error(" Không thể xóa đánh giá");
+    }
+  };
+
+  const handleEditReview = () => {
+    if (userReview) {
+      setRating(userReview.rating);
+      setComment(userReview.comment);
+      setShowReviewForm(true);
     }
   };
 
@@ -213,8 +252,6 @@ export default function ProductDetail() {
 
   return (
     <div className="bg-gradient-to-b from-amber-50 to-amber-100 min-h-screen">
-      {/* Using react-toastify for notifications (ToastContainer is mounted in App.tsx) */}
-
       <div className="mx-auto w-full max-w-6xl px-3 py-6 lg:px-0">
         <div className="grid gap-5 md:grid-cols-2">
           {/* LEFT: IMAGE */}
@@ -311,7 +348,6 @@ export default function ProductDetail() {
 
             {/* BUTTONS */}
             <div className="mt-6 flex flex-col gap-3">
-              {/* THÊM VÀO GIỎ */}
               <button
                 className="inline-flex items-center justify-center gap-2 rounded-md bg-black px-6 py-3 font-semibold text-white transition hover:bg-neutral-800 disabled:opacity-50"
                 onClick={() => requireLogin(() => addToCart(false))}
@@ -321,7 +357,6 @@ export default function ProductDetail() {
                 Thêm vào giỏ
               </button>
 
-              {/* MUA NGAY */}
               <button
                 className="rounded-md border-2 border-black px-6 py-3 font-semibold hover:bg-black hover:text-white transition disabled:opacity-50"
                 onClick={() => requireLogin(() => addToCart(true))}
@@ -346,7 +381,7 @@ export default function ProductDetail() {
         {/* TABS */}
         <Tabs className="mt-6">
           <Tab title="MÔ TẢ">
-            <div className="rounded-xl border border-neutral-200 bg-white p-5">
+            <div className="p-5">
               <h3 className="text-lg font-semibold">{product.name}</h3>
               <p className="mt-2 text-sm text-neutral-700 leading-6">
                 {product.description ||
@@ -367,78 +402,198 @@ export default function ProductDetail() {
               src="https://file.hstatic.net/1000253775/file/doitra_1.jpg"
               alt="Chính sách đổi hàng"
             />
-            <ImgPanel
-              src="https://file.hstatic.net/1000253775/file/doitra_2.jpg"
-              alt="Chính sách đổi hàng"
-            />
           </Tab>
         </Tabs>
 
-        {/* REVIEWS */}
-        <section className="mt-6 rounded-xl border border-neutral-200 bg-white p-5">
-          <div className="grid gap-6 md:grid-cols-[260px,1fr]">
+        <section className="mt-6 rounded-xl border border-neutral-200 bg-white p-6">
+          <div className="grid gap-6 md:grid-cols-[280px,1fr]">
+            {/* Left: Stats */}
             <div>
-              <h3 className="text-2xl font-extrabold">ĐÁNH GIÁ SẢN PHẨM</h3>
-              <div className="mt-4 flex items-center gap-3">
-                <div className="text-[44px] font-extrabold leading-none">
-                  {avgRating(REVIEWS)}
+              <h3 className="text-2xl font-extrabold mb-4">ĐÁNH GIÁ SẢN PHẨM</h3>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="text-5xl font-extrabold">
+                  {stats.averageRating.toFixed(1)}
                 </div>
                 <div>
-                  <StarRow
-                    stars={Math.round(avgRating(REVIEWS)) as 1 | 2 | 3 | 4 | 5}
-                  />
-                  <div className="text-sm font-semibold text-neutral-700">
-                    {REVIEWS.length} đánh giá
+                  <StarRating rating={Math.round(stats.averageRating)} />
+                  <div className="text-sm font-semibold text-neutral-700 mt-1">
+                    {stats.totalReviews} đánh giá
                   </div>
                 </div>
               </div>
 
-              <ul className="mt-4 space-y-2 text-sm">
-                {([5, 4, 3, 2, 1] as const).map((s) => {
-                  const count = countByStar(REVIEWS)[s];
-                  const percent = REVIEWS.length
-                    ? Math.round((count / REVIEWS.length) * 100)
+              {/* Rating Distribution */}
+              <div className="space-y-2">
+                {([5, 4, 3, 2, 1] as const).map((star) => {
+                  const count = stats.ratingDistribution[star];
+                  const percent = stats.totalReviews
+                    ? Math.round((count / stats.totalReviews) * 100)
                     : 0;
                   return (
-                    <li key={s} className="flex items-center gap-2">
-                      <div className="w-8 text-right">{s}★</div>
-                      <div className="relative h-2 flex-1 rounded bg-neutral-200">
+                    <div key={star} className="flex items-center gap-2 text-sm">
+                      <div className="w-8 text-right">{star}★</div>
+                      <div className="flex-1 h-2 bg-neutral-200 rounded-full overflow-hidden">
                         <div
-                          className="absolute left-0 top-0 h-2 rounded bg-yellow-400"
+                          className="h-full bg-yellow-400 transition-all"
                           style={{ width: `${percent}%` }}
                         />
                       </div>
-                      <div className="w-10 text-right tabular-nums">
-                        {count}
-                      </div>
-                    </li>
+                      <div className="w-10 text-right tabular-nums">{count}</div>
+                    </div>
                   );
                 })}
-              </ul>
+              </div>
+
+              {/* Write Review Button */}
+              {userReview ? (
+                <div className="mt-6 space-y-2">
+                  <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <p className="text-sm font-semibold text-green-700">
+                      ✓ Bạn đã đánh giá sản phẩm này
+                    </p>
+                    {userReview.status === "pending" && (
+                      <p className="text-xs text-green-600 mt-1">
+                        (Đang chờ duyệt)
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleEditReview}
+                      className="flex-1 px-4 py-2 bg-white border border-neutral-300 rounded-lg hover:bg-neutral-50 text-sm font-semibold flex items-center justify-center gap-2"
+                    >
+                      <Edit className="w-4 h-4" />
+                      Sửa
+                    </button>
+                    <button
+                      onClick={handleDeleteReview}
+                      className="flex-1 px-4 py-2 bg-red-50 border border-red-200 text-red-600 rounded-lg hover:bg-red-100 text-sm font-semibold flex items-center justify-center gap-2"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Xóa
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => {
+                    const token = localStorage.getItem("accessToken");
+                    if (!token) {
+                      toast.warning("⚠️ Vui lòng đăng nhập để đánh giá");
+                      navigate("/dang-nhap");
+                      return;
+                    }
+                    setShowReviewForm(!showReviewForm);
+                  }}
+                  className="w-full mt-6 px-4 py-3 bg-black text-white rounded-lg hover:bg-neutral-800 font-semibold"
+                >
+                  Viết đánh giá
+                </button>
+              )}
             </div>
 
-            <div>
-              <ul className="space-y-4">
-                {REVIEWS.map((r) => (
-                  <li
-                    key={r.id}
-                    className="rounded-lg border border-neutral-200 p-4"
-                  >
-                    <div className="flex justify-between">
-                      <div className="font-semibold">{r.user}</div>
-                      <div className="text-xs text-neutral-500">
-                        {formatDateVN(r.createdAt)}
+            {/* Right: Reviews List */}
+            <div className="space-y-6">
+              {/* Review Form */}
+              {showReviewForm && (
+                <form
+                  onSubmit={handleSubmitReview}
+                  className="p-4 border-2 border-black rounded-lg bg-amber-50"
+                >
+                  <h4 className="font-bold mb-3">
+                    {userReview ? "Sửa đánh giá" : "Viết đánh giá của bạn"}
+                  </h4>
+
+                  {/* Star Selection */}
+                  <div className="mb-3">
+                    <label className="text-sm font-semibold mb-2 block">
+                      Đánh giá của bạn:
+                    </label>
+                    <div className="flex gap-2">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => setRating(star)}
+                          className="focus:outline-none transition-transform hover:scale-110"
+                        >
+                          <Star
+                            className={`w-8 h-8 ${
+                              star <= rating
+                                ? "fill-yellow-400 text-yellow-400"
+                                : "text-neutral-300"
+                            }`}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Comment */}
+                  <textarea
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    placeholder="Chia sẻ trải nghiệm của bạn về sản phẩm..."
+                    className="w-full px-4 py-3 border border-neutral-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-black"
+                    rows={4}
+                    required
+                  />
+
+                  <div className="flex gap-2 mt-3">
+                    <button
+                      type="submit"
+                      className="flex-1 px-4 py-2 bg-black text-white rounded-lg hover:bg-neutral-800 font-semibold flex items-center justify-center gap-2"
+                    >
+                      <Send className="w-4 h-4" />
+                      {userReview ? "Cập nhật" : "Gửi đánh giá"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowReviewForm(false);
+                        setComment("");
+                        setRating(5);
+                      }}
+                      className="px-4 py-2 border border-neutral-300 rounded-lg hover:bg-neutral-50 font-semibold"
+                    >
+                      Hủy
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {/* Reviews List */}
+              {reviews.length === 0 ? (
+                <div className="text-center py-12 text-neutral-500">
+                  <Star className="w-16 h-16 mx-auto mb-4 text-neutral-300" />
+                  <p className="font-semibold">Chưa có đánh giá nào</p>
+                  <p className="text-sm mt-2">
+                    Hãy là người đầu tiên đánh giá sản phẩm này!
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {reviews.map((review) => (
+                    <div
+                      key={review.review_id}
+                      className="p-4 border border-neutral-200 rounded-lg hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <p className="font-semibold">{review.user?.username}</p>
+                          <StarRating rating={review.rating} />
+                        </div>
+                        <time className="text-xs text-neutral-500">
+                          {new Date(review.created_at).toLocaleDateString("vi-VN")}
+                        </time>
                       </div>
+                      <p className="text-sm text-neutral-700 leading-relaxed">
+                        {review.comment}
+                      </p>
                     </div>
-                    <div className="mt-1">
-                      <StarRow stars={r.rating} />
-                    </div>
-                    <p className="mt-2 text-sm leading-6 text-neutral-800">
-                      {r.comment}
-                    </p>
-                  </li>
-                ))}
-              </ul>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </section>
@@ -499,7 +654,7 @@ function Tabs({
 }
 
 function Tab({ children }: { title: string; children: React.ReactNode }) {
-  return <div className="p-5">{children}</div>;
+  return <>{children}</>;
 }
 
 function ImgPanel({ src, alt }: { src: string; alt: string }) {
@@ -518,14 +673,14 @@ function ImgPanel({ src, alt }: { src: string; alt: string }) {
   );
 }
 
-function StarRow({ stars }: { stars: number }) {
+function StarRating({ rating }: { rating: number }) {
   return (
     <div className="inline-flex items-center gap-1">
       {Array.from({ length: 5 }, (_, i) => (
         <Star
           key={i}
           className={`h-4 w-4 ${
-            i < stars ? "text-yellow-400 fill-yellow-400" : "text-neutral-300"
+            i < rating ? "text-yellow-400 fill-yellow-400" : "text-neutral-300"
           }`}
         />
       ))}

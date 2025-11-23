@@ -1,4 +1,4 @@
-// src/api/reviews.ts
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import axiosInstance from "./client";
 
 /* ================= Types ================= */
@@ -15,6 +15,11 @@ export interface Review {
     user_id: number;
     username: string;
     email: string;
+  };
+  product?: {
+    product_id: number;
+    name: string;
+    image_url?: string;
   };
 }
 
@@ -78,6 +83,8 @@ export const fetchReviewStats = async (
   }
 };
 
+/* ================= USER API ================= */
+
 /**
  * Tạo đánh giá mới (yêu cầu đăng nhập)
  */
@@ -97,6 +104,28 @@ export const createReview = async (data: {
   } catch (err) {
     console.error("createReview error:", err);
     throw err;
+  }
+};
+
+/**
+ * Kiểm tra xem user đã đánh giá sản phẩm này chưa
+ */
+export const checkUserReview = async (
+  productId: number
+): Promise<Review | null> => {
+  try {
+    const token = getToken();
+    if (!token) return null;
+
+    const res = await axiosInstance.get(
+      `/api/v1/reviews/check/${productId}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+    return res.data.data;
+  } catch (err) {
+    return null;
   }
 };
 
@@ -139,29 +168,6 @@ export const deleteReview = async (reviewId: number): Promise<boolean> => {
   } catch (err) {
     console.error("deleteReview error:", err);
     return false;
-  }
-};
-
-/**
- * Kiểm tra xem user đã đánh giá sản phẩm này chưa
- */
-export const checkUserReview = async (
-  productId: number
-): Promise<Review | null> => {
-  try {
-    const token = getToken();
-    if (!token) return null;
-
-    const res = await axiosInstance.get(
-      `/api/v1/reviews/check/${productId}`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
-    return res.data.data;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  } catch (err) {
-    return null;
   }
 };
 
