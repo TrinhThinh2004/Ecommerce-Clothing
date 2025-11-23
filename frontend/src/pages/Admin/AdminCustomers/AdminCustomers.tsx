@@ -199,7 +199,7 @@ export default function AdminCustomers() {
       }
     >
       <div className="min-h-screen bg-neutral-50">
-        <div className="mx-auto max-w-7xl px-4 py-6">
+        <div className="w-full px-4 py-6">
           {/* Filters */}
           <div className="mb-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div className="relative">
