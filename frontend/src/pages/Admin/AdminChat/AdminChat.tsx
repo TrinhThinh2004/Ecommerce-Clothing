@@ -1,8 +1,11 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import AdminLayout from "../_Components/AdminLayout";
 import { io, Socket } from "socket.io-client";
 import { getChatHistory } from "../../../api/chat";
+import {
+  fetchAllCustomers,
 
+} from "../../../api/admin";
 type AdminUser = { user_id: string | number; username: string; email?: string };
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:5000";
@@ -14,17 +17,17 @@ export default function AdminChat() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
+  const selectedUserRef = useRef<AdminUser | null>(null);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const socketRef = useRef<Socket | null>(null);
 
-  // load users directly (attach access token)
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const token = localStorage.getItem("accessToken");
-      const res = await fetch(`${SOCKET_URL}/api/v1/admin/users`, {
+      const res = await fetch(`${SOCKET_URL}/api/v1/admin/customers`, {
         headers: {
           Authorization: token ? `Bearer ${token}` : "",
           "Content-Type": "application/json",
@@ -38,65 +41,72 @@ export default function AdminChat() {
         return;
       }
       const data = await res.json();
-      setUsers(data.users || data);
+      // controller returns { success: true, data: [...] }
+      setUsers(data.data || data.users || data);
     } catch (err: any) {
       setError(err?.message || String(err));
       setUsers([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
-   
-    socketRef.current = io(SOCKET_URL, { transports: ["polling", "websocket"], auth: { token }, withCredentials: true });
-    socketRef.current.on("connect_error", (err: any) => {
-      console.error("socket connect_error", err);
 
+    socketRef.current = io(SOCKET_URL, { transports: ["polling", "websocket"], auth: { token }, withCredentials: true });
+    const socket = socketRef.current;
+
+    const onConnectError = (err: any) => {
+      console.error("socket connect_error", err);
       try {
         console.error('connect_error message', err?.message, 'data', err?.data);
-      } catch (e) {
-       
-      }
-    });
-    socketRef.current.on("private_message", (msg: any) => {
-     
-      const senderId = msg.sender_id ?? msg.sender ?? msg.sender_username;
-      const senderUsername = msg.sender_username ?? (typeof msg.sender === "string" ? msg.sender : undefined);
+      } catch (e) {}
+    };
 
-      
-      if (
-        selectedUser &&
-        (String(selectedUser.user_id) === String(senderId) || String(selectedUser.username) === String(senderUsername))
-      ) {
-        const displaySender = senderUsername ?? senderId ?? msg.sender;
+    const onPrivateMessage = (msg: any) => {
+  
+      const displaySender = msg?.sender?.username ?? msg?.sender_username ?? (msg?.is_from_admin ? 'admin' : (msg?.sender_id ?? msg?.sender));
+
+      const sel = selectedUserRef.current;
+      const belongsToSelected = Boolean(
+        sel &&
+          (String(sel.user_id) === String(msg?.sender_id) ||
+            String(sel.username) === String(displaySender) ||
+            String(sel.user_id) === String(msg?.owner_id) ||
+            String(sel.user_id) === String(msg?.receiver_id))
+      );
+
+      if (belongsToSelected) {
         setMessages((m) => [...m, { sender: displaySender, text: msg.content || msg.text, created_at: msg.created_at }]);
       } else {
-      
         loadUsers();
       }
-    });
+    };
 
-    // initial load
+    socket.on("connect_error", onConnectError);
+    socket.on("private_message", onPrivateMessage);
+
     loadUsers();
 
     return () => {
-      socketRef.current?.disconnect();
+      socket.off("connect_error", onConnectError);
+      socket.off("private_message", onPrivateMessage);
+      socket.disconnect();
       socketRef.current = null;
     };
-    
-  }, [selectedUser]);
+  }, [loadUsers]);
 
 
   const selectUser = async (u: AdminUser) => {
     setSelectedUser(u);
+    selectedUserRef.current = u;
     try {
       const hist = await getChatHistory(u.user_id);
-     
+
       setMessages(
-        (hist || []).map((m: any) => ({ sender: m.sender_id || m.sender, text: m.content || m.text, created_at: m.created_at }))
+        (hist || []).map((m: any) => ({ sender: m?.sender?.username ?? (m.is_from_admin ? 'admin' : m.sender_id ?? m.sender), text: m.content ?? m.text, created_at: m.created_at }))
       );
     } catch (err) {
       setMessages([]);

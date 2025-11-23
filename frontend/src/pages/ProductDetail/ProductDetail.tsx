@@ -13,8 +13,9 @@ import {
 import { addToCart as addToCartAPI } from "../../api/cart";
 import type { Product } from "../../types/product";
 import { formatVnd } from "../../utils/format";
+import { toast } from "react-toastify";
 
-/* ----------------- TYPES ------------------ */
+
 type Review = {
   id: string;
   user: string;
@@ -23,7 +24,7 @@ type Review = {
   createdAt: string;
 };
 
-/* ----------------- MOCK DATA ------------------ */
+
 const REVIEWS: Review[] = [
   {
     id: "r1",
@@ -48,7 +49,6 @@ const REVIEWS: Review[] = [
   },
 ];
 
-/* ----------------- HELPERS ------------------ */
 function avgRating(list: Review[]): number {
   if (!list.length) return 0;
   const sum = list.reduce((s, r) => s + r.rating, 0);
@@ -74,7 +74,7 @@ function formatDateVN(iso: string): string {
   });
 }
 
-/* ----------------- MAIN COMPONENT ------------------ */
+
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -85,12 +85,6 @@ export default function ProductDetail() {
   const [qty, setQty] = useState(1);
   const [showSizeGuide, setShowSizeGuide] = useState(false);
 
-  // Toast notification state
-  const [toast, setToast] = useState<{
-    show: boolean;
-    type: "success" | "error";
-    message: string;
-  }>({ show: false, type: "success", message: "" });
 
   useEffect(() => {
     async function fetchProduct() {
@@ -100,7 +94,7 @@ export default function ProductDetail() {
         setProduct(data?.data || data);
       } catch (err) {
         console.error("Lỗi tải sản phẩm:", err);
-        showToast("error", "Không thể tải thông tin sản phẩm");
+        toast.error("Không thể tải thông tin sản phẩm");
       } finally {
         setLoading(false);
       }
@@ -108,15 +102,13 @@ export default function ProductDetail() {
     fetchProduct();
   }, [id]);
 
-  // Toast helper
-  const showToast = (type: "success" | "error", message: string) => {
-    setToast({ show: true, type, message });
-    setTimeout(() => {
-      setToast({ show: false, type, message: "" });
-    }, 3000);
-  };
+  // const showToast = (type: "success" | "error", message: string) => {
+  //   setToast({ show: true, type, message });
+  //   setTimeout(() => {
+  //     setToast({ show: false, type, message: "" });
+  //   }, 3000);
+  // };
 
-  // Check login
   const requireLogin = (callback: () => void) => {
     const token = localStorage.getItem("accessToken");
     if (!token) {
@@ -133,54 +125,52 @@ export default function ProductDetail() {
     return true;
   };
 
-  // Add to cart function with validation
   const addToCart = async (buyNow: boolean = false) => {
-    // Validate size selection
     if (!size) {
-      showToast("error", "⚠️ Vui lòng chọn kích thước!");
+      toast.error(" Vui lòng chọn kích thước!");
       return;
     }
 
     if (!product) {
-      showToast("error", "❌ Không tìm thấy sản phẩm!");
+      toast.error("Không tìm thấy sản phẩm!");
       return;
     }
 
-    // Check if user is logged in
+ 
     const token = localStorage.getItem("accessToken");
     if (!token) {
-      showToast("error", "⚠️ Vui lòng đăng nhập để thêm vào giỏ!");
+      toast.error("⚠️ Vui lòng đăng nhập để thêm vào giỏ!");
       setTimeout(() => navigate("/dang-nhap"), 1000);
       return;
     }
 
     try {
-      // Call API helper
+ 
       const result = await addToCartAPI(product.product_id, qty, size);
 
       if (result) {
-        // Show success message
-        showToast("success", `🛒 Đã thêm ${qty} sản phẩm vào giỏ!`);
+ 
+        toast.success(` Đã thêm ${qty} sản phẩm vào giỏ!`);
 
-        // Dispatch custom event to update cart count in other components
+      
         window.dispatchEvent(new Event("cartUpdated"));
 
-        // Navigate to cart if "Buy Now"
+  
         if (buyNow) {
           setTimeout(() => {
             navigate("/gio-hang");
           }, 500);
         }
       } else {
-        showToast("error", "❌ Không thể thêm vào giỏ. Vui lòng thử lại!");
+        toast.error("❌ Không thể thêm vào giỏ. Vui lòng thử lại!");
       }
     } catch (error) {
       console.error("Error adding to cart:", error);
       const errorMsg =
         error instanceof Error && error.message === "Chưa đăng nhập"
-          ? "⚠️ Vui lòng đăng nhập để thêm vào giỏ!"
-          : "❌ Có lỗi xảy ra. Vui lòng thử lại!";
-      showToast("error", errorMsg);
+          ? "Vui lòng đăng nhập để thêm vào giỏ!"
+          : "Có lỗi xảy ra. Vui lòng thử lại!";
+      toast.error(errorMsg);
 
       if (error instanceof Error && error.message === "Chưa đăng nhập") {
         setTimeout(() => navigate("/dang-nhap"), 1000);
@@ -223,25 +213,7 @@ export default function ProductDetail() {
 
   return (
     <div className="bg-gradient-to-b from-amber-50 to-amber-100 min-h-screen">
-      {/* Toast Notification */}
-      {toast.show && (
-        <div className="fixed top-4 right-4 z-50 animate-slide-in">
-          <div
-            className={`flex items-center gap-3 px-6 py-3 rounded-lg shadow-lg ${
-              toast.type === "success"
-                ? "bg-green-500 text-white"
-                : "bg-red-500 text-white"
-            }`}
-          >
-            {toast.type === "success" ? (
-              <CheckCircle className="h-5 w-5" />
-            ) : (
-              <XCircle className="h-5 w-5" />
-            )}
-            <span className="font-medium">{toast.message}</span>
-          </div>
-        </div>
-      )}
+      {/* Using react-toastify for notifications (ToastContainer is mounted in App.tsx) */}
 
       <div className="mx-auto w-full max-w-6xl px-3 py-6 lg:px-0">
         <div className="grid gap-5 md:grid-cols-2">

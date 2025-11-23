@@ -36,6 +36,24 @@ module.exports = {
         allowNull: false,
         defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),
       },
+ 
+      owner_id: {
+        type: Sequelize.INTEGER,
+        allowNull: true, 
+        references: { model: "users", key: "user_id" },
+        onDelete: "CASCADE",
+      },
+    });
+
+    await queryInterface.sequelize.query(
+      `UPDATE messages SET owner_id = sender_id WHERE owner_id IS NULL;`
+    );
+
+    await queryInterface.changeColumn("messages", "owner_id", {
+      type: Sequelize.INTEGER,
+      allowNull: false,
+      references: { model: "users", key: "user_id" },
+      onDelete: "CASCADE",
     });
   },
 
