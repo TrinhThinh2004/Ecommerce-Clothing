@@ -20,7 +20,7 @@ export default function ProductsPage() {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
 
-  const limit = 8; // ✅ mỗi trang hiển thị 8 sản phẩm
+  const limit = 8; // mỗi trang hiển thị 8 sản phẩm
 
   useEffect(() => {
     const fetchProducts = async () => {

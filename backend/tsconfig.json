@@ -16,10 +16,9 @@
     /* Strict type-checking */
     "strict": true,
     "skipLibCheck": true,
-    "ignoreDeprecations": "6.0",
     /* Module Resolution */
     "esModuleInterop": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     
   },
   "include": ["src"],

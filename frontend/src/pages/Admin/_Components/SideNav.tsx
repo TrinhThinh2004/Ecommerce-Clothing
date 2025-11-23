@@ -19,6 +19,7 @@ export default function SideNav({ onNavigate }: Props) {
     { to: "/admin/orders", label: "Đơn hàng", icon: <ShoppingBag /> },
     { to: "/admin/products", label: "Sản phẩm", icon: <Package /> },
     { to: "/admin/customers", label: "Khách hàng", icon: <Users2 /> },
+    { to: "/admin/chat", label: "Chat", icon: <MessageSquare /> },
     { to: "/admin/vouchers", label: "Mã giảm giá", icon: <TicketPercent /> },
     { to: "/admin/reviews", label: "Đánh giá", icon: <MessageSquare /> },
     { to: "/admin/settings", label: "Cấu hình", icon: <Settings /> },

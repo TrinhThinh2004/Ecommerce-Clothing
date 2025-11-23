@@ -1,7 +1,6 @@
 import { DataTypes, Model, Optional } from "sequelize";
 import sequelize from "../config/database";
-import OrderItem from "../models/OrderItem";
-
+import User from "./User";
 export interface OrderAttributes {
   order_id: number;
   user_id: number;
@@ -63,12 +62,13 @@ class Order
     | "shipping"
     | "completed"
     | "cancelled";
-  public created_at!: Date;
-  public updated_at!: Date;
+  public readonly created_at!: Date;
+  public readonly updated_at!: Date;
 }
 
 Order.init(
   {
+    
     order_id: {
       type: DataTypes.INTEGER,
       autoIncrement: true,
@@ -83,16 +83,8 @@ Order.init(
     ward: { type: DataTypes.STRING(50), allowNull: true },
     note: { type: DataTypes.TEXT, allowNull: true },
     voucher_code: { type: DataTypes.STRING(50), allowNull: true },
-    discount_amount: {
-      type: DataTypes.DECIMAL(12, 0),
-      allowNull: false,
-      defaultValue: 0,
-    },
-    shipping_fee: {
-      type: DataTypes.DECIMAL(12, 0),
-      allowNull: false,
-      defaultValue: 0,
-    },
+    discount_amount: { type: DataTypes.DECIMAL(12, 0), allowNull: false, defaultValue: 0 },
+    shipping_fee: { type: DataTypes.DECIMAL(12, 0), allowNull: false, defaultValue: 0 },
     total_price: { type: DataTypes.DECIMAL(12, 0), allowNull: false },
     payment_method: {
       type: DataTypes.ENUM("cod", "vnpay", "momo"),
@@ -114,24 +106,19 @@ Order.init(
       allowNull: false,
       defaultValue: "pending",
     },
-    created_at: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW,
-    },
-    updated_at: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW,
-    },
   },
   {
     sequelize,
     tableName: "orders",
     modelName: "Order",
-    timestamps: false,
-    underscored: true,
+    timestamps: true,               // Bật timestamps
+    createdAt: "created_at",        // Mapping cột created_at
+    updatedAt: "updated_at",        // Mapping cột updated_at
+    underscored: true,              // Chuyển camelCase -> snake_case
   }
 );
-
+Order.belongsTo(User, { 
+  foreignKey: "user_id", 
+  as: "user" 
+});
 export default Order;

@@ -11,47 +11,25 @@ import {
 } from "lucide-react";
 import { formatVnd } from "../../../utils/format";
 import AdminLayout from "../_Components/AdminLayout";
+import {
+  fetchAllOrders,
+  fetchOrderDetail,
+  updateOrderStatus as apiUpdateOrderStatus,
+  deleteOrder as apiDeleteOrder,
+  type AdminOrder,
+} from "../../../api/admin";
+import { toast } from "react-toastify";
 
-/* ================= Types ================= */
-type OrderStatus =
-  | "pending" // Chờ xử lý
-  | "processing" // Đang xử lý/đóng gói
-  | "shipped" // Đã gửi
-  | "delivered" // Đã giao
-  | "canceled"; // Đã hủy
-
-type PaymentMethod = "cod" | "momo" | "vnpay";
-
-type OrderItem = {
-  sku: string;
-  name: string;
-  image: string;
-  qty: number;
-  price: number;
-  size?: string;
-};
-
-export type Order = {
-  id: string; // VD: ORD1023
-  customerName: string;
-  phone: string;
-  address: string;
-  method: PaymentMethod; // mock thanh toán
-  status: OrderStatus;
-  items: OrderItem[];
-  note?: string;
-  createdAt: string; // ISO datetime
-};
-
+type OrderStatus = AdminOrder["status"];
+type PaymentMethod = AdminOrder["payment_method"];
 type DateRange = "7d" | "30d" | "all";
 
-/* ================= Mocks & helpers ================= */
 const STATUSES: { value: OrderStatus; label: string }[] = [
   { value: "pending", label: "Chờ xử lý" },
   { value: "processing", label: "Đang xử lý" },
-  { value: "shipped", label: "Đã gửi" },
-  { value: "delivered", label: "Đã giao" },
-  { value: "canceled", label: "Đã hủy" },
+  { value: "shipping", label: "Đang giao" },
+  { value: "completed", label: "Hoàn thành" },
+  { value: "cancelled", label: "Đã hủy" },
 ];
 
 const METHODS: Record<PaymentMethod, string> = {
@@ -60,84 +38,11 @@ const METHODS: Record<PaymentMethod, string> = {
   vnpay: "VNPAY",
 };
 
-const IMG = [
-  "https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=800&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?q=80&w=800&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1516826957135-700dedea698c?q=80&w=800&auto=format&fit=crop",
-];
-
-const NAMES = [
-  "Áo thun ICONDENIM ORGNLS",
-  "Quần jean Grey Baggy",
-  "Áo polo Braided Stripes",
-  "Mũ Conqueror Bear",
-];
-
-function seedOrders(n = 48): Order[] {
-  const now = new Date();
-  return Array.from({ length: n }, (_, i) => {
-    const created = new Date(
-      now.getTime() - Math.floor(Math.random() * 1000 * 60 * 60 * 24 * 28)
-    ); // trong 28 ngày
-    const itemCount = 1 + (i % 3);
-    const items: OrderItem[] = Array.from({ length: itemCount }, (_, j) => {
-      const pick = (i + j) % IMG.length;
-      return {
-        sku: `SKU-${1000 + i}-${j + 1}`,
-        name: NAMES[(i + j) % NAMES.length],
-        image: IMG[pick],
-        qty: 1 + (j % 2),
-        price: [299000, 549000, 359000, 249000][(i + j) % 4],
-        size: ["S", "M", "L", "XL"][(i + j) % 4],
-      };
-    });
-
-    const status = (
-      [
-        "pending",
-        "processing",
-        "shipped",
-        "delivered",
-        "canceled",
-      ] as OrderStatus[]
-    )[i % 5];
-
-    return {
-      id: `ORD${1023 + i}`,
-      customerName: `Khách ${i + 1}`,
-      phone: `09${Math.floor(10000000 + Math.random() * 89999999)}`,
-      address: `Số ${i + 10} Đường ABC, Q.${(i % 10) + 1}, TP.HCM`,
-      method: (["cod", "momo", "vnpay"] as PaymentMethod[])[i % 3],
-      status,
-      items,
-      note: i % 5 === 0 ? "Giao giờ hành chính" : undefined,
-      createdAt: created.toISOString(),
-    };
-  });
-}
-
-function getTotal(o: Order) {
-  return o.items.reduce((s, it) => s + it.price * it.qty, 0);
-}
-
-function loadOrders(): Order[] {
-  try {
-    const raw = localStorage.getItem("admin_orders");
-    if (raw) {
-      const parsed = JSON.parse(raw) as unknown;
-      if (Array.isArray(parsed)) return parsed as Order[];
-    }
-  } catch (err) {
-    console.warn("[admin_orders] Lỗi đọc localStorage:", err);
-  }
-  const seeded = seedOrders();
-  localStorage.setItem("admin_orders", JSON.stringify(seeded));
-  return seeded;
-}
-
-function saveOrders(orders: Order[]) {
-  localStorage.setItem("admin_orders", JSON.stringify(orders));
-}
+const PAYMENT_STATUS_LABELS: Record<AdminOrder["payment_status"], string> = {
+  pending: "Chưa thanh toán",
+  paid: "Đã thanh toán",
+  failed: "Thanh toán thất bại",
+};
 
 function withinRange(iso: string, range: DateRange) {
   if (range === "all") return true;
@@ -147,9 +52,9 @@ function withinRange(iso: string, range: DateRange) {
   return t >= cutoff;
 }
 
-/* ================= Page ================= */
 export default function AdminOrders() {
-  const [orders, setOrders] = useState<Order[]>(() => loadOrders());
+  const [orders, setOrders] = useState<AdminOrder[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // filters
   const [q, setQ] = useState("");
@@ -161,23 +66,63 @@ export default function AdminOrders() {
   const pageSize = 10;
 
   // drawer view
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<number | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+
+  // Load orders
+  const loadOrders = async () => {
+    setLoading(true);
+    try {
+      const data = await fetchAllOrders();
+      setOrders(data);
+    } catch (err) {
+      console.error("Error loading orders:", err);
+      toast.error("Không thể tải danh sách đơn hàng");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadOrders();
+  }, []);
+
+  // Load order detail when drawer opens
+  useEffect(() => {
+    if (openId) {
+      setLoadingDetail(true);
+      fetchOrderDetail(openId)
+        .then((data) => {
+          setSelectedOrder(data);
+        })
+        .catch((err) => {
+          console.error("Error loading order detail:", err);
+          toast.error("Không thể tải chi tiết đơn hàng");
+        })
+        .finally(() => {
+          setLoadingDetail(false);
+        });
+    } else {
+      setSelectedOrder(null);
+    }
+  }, [openId]);
 
   // derived
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase();
     return orders
       .filter((o) => (status === "all" ? true : o.status === status))
-      .filter((o) => withinRange(o.createdAt, range))
+      .filter((o) => withinRange(o.created_at, range))
       .filter((o) => {
         if (!query) return true;
         return (
-          o.id.toLowerCase().includes(query) ||
-          o.customerName.toLowerCase().includes(query) ||
+          String(o.order_id).includes(query) ||
+          o.full_name.toLowerCase().includes(query) ||
           o.phone.toLowerCase().includes(query)
         );
       })
-      .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
+      .sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
   }, [orders, status, range, q]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
@@ -191,23 +136,40 @@ export default function AdminOrders() {
     setPage(1);
   }, [q, status, range]);
 
-  function updateStatus(id: string, next: OrderStatus) {
-    setOrders((prev) => {
-      const nextArr = prev.map((o) =>
-        o.id === id ? { ...o, status: next } : o
-      );
-      saveOrders(nextArr);
-      return nextArr;
-    });
+  async function updateStatus(id: number, next: OrderStatus) {
+    try {
+      await apiUpdateOrderStatus(id, next);
+      toast.success("Đã cập nhật trạng thái đơn hàng");
+      await loadOrders();
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (err) {
+      toast.error("Không thể cập nhật trạng thái");
+    }
   }
 
-  function removeOrder(id: string) {
-    if (!confirm(`Xóa đơn ${id}? (demo)`)) return;
-    setOrders((prev) => {
-      const nextArr = prev.filter((o) => o.id !== id);
-      saveOrders(nextArr);
-      return nextArr;
-    });
+  async function removeOrder(id: number) {
+    if (!window.confirm(`Xóa đơn #${id}?`)) return;
+    try {
+      await apiDeleteOrder(id);
+      toast.success("Đã xóa đơn hàng");
+      await loadOrders();
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (err) {
+      toast.error("Không thể xóa đơn hàng");
+    }
+  }
+
+  if (loading) {
+    return (
+      <AdminLayout title="Quản lý đơn hàng">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto"></div>
+            <p className="mt-4 text-neutral-600">Đang tải...</p>
+          </div>
+        </div>
+      </AdminLayout>
+    );
   }
 
   return (
@@ -264,7 +226,7 @@ export default function AdminOrders() {
       {/* Table */}
       <section className="mt-4 overflow-hidden rounded-xl border border-neutral-200 bg-white">
         <div className="overflow-x-auto">
-          <table className="min-w-[720px] w-full text-sm">
+          <table className="min-w-[920px] w-full text-sm">
             <thead className="bg-neutral-50 text-neutral-600">
               <tr>
                 <Th>#Đơn</Th>
@@ -273,49 +235,53 @@ export default function AdminOrders() {
                 <Th>Tổng</Th>
                 <Th>Ngày tạo</Th>
                 <Th>Trạng thái</Th>
+                <Th>TT thanh toán</Th>
                 <Th className="text-right pr-3">Thao tác</Th>
               </tr>
             </thead>
             <tbody className="divide-y">
               {pageItems.map((o) => (
-                <tr key={o.id} className="hover:bg-neutral-50/60">
+                <tr key={o.order_id} className="hover:bg-neutral-50/60">
                   <Td>
-                    <div className="font-semibold">{o.id}</div>
+                    <div className="font-semibold">#{o.order_id}</div>
                     <div className="text-xs text-neutral-500">
-                      {o.items.length} SP
+                      {o.items?.length || 0} SP
                     </div>
                   </Td>
                   <Td>
-                    <div className="font-medium">{o.customerName}</div>
+                    <div className="font-medium">{o.full_name}</div>
                     <div className="text-xs text-neutral-500">{o.phone}</div>
                   </Td>
-                  <Td>{METHODS[o.method]}</Td>
-                  <Td className="font-semibold">{formatVnd(getTotal(o))}</Td>
+                  <Td>{METHODS[o.payment_method]}</Td>
+                  <Td className="font-semibold">{formatVnd(o.total_price)}</Td>
                   <Td>
-                    {new Date(o.createdAt).toLocaleString("vi-VN", {
+                    {new Date(o.created_at).toLocaleString("vi-VN", {
                       hour12: false,
                     })}
                   </Td>
                   <Td>
                     <StatusBadge value={o.status} />
                   </Td>
+                  <Td>
+                    <PaymentStatusBadge value={o.payment_status} />
+                  </Td>
                   <Td className="text-right">
                     <div className="flex items-center justify-end gap-1">
                       <StatusSelect
                         value={o.status}
-                        onChange={(s) => updateStatus(o.id, s)}
+                        onChange={(s) => updateStatus(o.order_id, s)}
                       />
                       <button
                         className="rounded-md p-2 text-neutral-600 hover:bg-neutral-100"
                         title="Xem chi tiết"
-                        onClick={() => setOpenId(o.id)}
+                        onClick={() => setOpenId(o.order_id)}
                       >
                         <Eye className="h-4 w-4" />
                       </button>
                       <button
                         className="rounded-md p-2 text-red-600 hover:bg-red-50"
                         title="Xóa"
-                        onClick={() => removeOrder(o.id)}
+                        onClick={() => removeOrder(o.order_id)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -326,7 +292,7 @@ export default function AdminOrders() {
 
               {pageItems.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-neutral-600">
+                  <td colSpan={8} className="p-8 text-center text-neutral-600">
                     Không có đơn hàng nào.
                   </td>
                 </tr>
@@ -364,7 +330,8 @@ export default function AdminOrders() {
 
       {/* Drawer chi tiết */}
       <OrderDrawer
-        order={orders.find((o) => o.id === openId) || null}
+        order={selectedOrder}
+        loading={loadingDetail}
         onClose={() => setOpenId(null)}
       />
     </AdminLayout>
@@ -399,9 +366,9 @@ function StatusBadge({ value }: { value: OrderStatus }) {
   const map: Record<OrderStatus, string> = {
     pending: "bg-amber-50 text-amber-700",
     processing: "bg-sky-50 text-sky-700",
-    shipped: "bg-indigo-50 text-indigo-700",
-    delivered: "bg-emerald-50 text-emerald-700",
-    canceled: "bg-red-50 text-red-700",
+    shipping: "bg-indigo-50 text-indigo-700",
+    completed: "bg-emerald-50 text-emerald-700",
+    cancelled: "bg-red-50 text-red-700",
   };
   const label = STATUSES.find((s) => s.value === value)?.label ?? value;
   return (
@@ -409,6 +376,21 @@ function StatusBadge({ value }: { value: OrderStatus }) {
       className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${map[value]}`}
     >
       {label}
+    </span>
+  );
+}
+
+function PaymentStatusBadge({ value }: { value: AdminOrder["payment_status"] }) {
+  const map: Record<AdminOrder["payment_status"], string> = {
+    pending: "bg-amber-50 text-amber-700",
+    paid: "bg-emerald-50 text-emerald-700",
+    failed: "bg-red-50 text-red-700",
+  };
+  return (
+    <span
+      className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${map[value]}`}
+    >
+      {PAYMENT_STATUS_LABELS[value]}
     </span>
   );
 }
@@ -439,24 +421,28 @@ function StatusSelect({
 /* ================= Drawer ================= */
 function OrderDrawer({
   order,
+  loading,
   onClose,
 }: {
-  order: Order | null;
+  order: AdminOrder | null;
+  loading: boolean;
   onClose: () => void;
 }) {
+  const isOpen = order !== null || loading;
+
   return (
     <div
       className={[
         "fixed inset-0 z-50",
-        order ? "pointer-events-auto" : "pointer-events-none",
+        isOpen ? "pointer-events-auto" : "pointer-events-none",
       ].join(" ")}
-      aria-hidden={!order}
+      aria-hidden={!isOpen}
     >
       {/* overlay */}
       <div
         className={[
           "absolute inset-0 bg-black/40 transition-opacity",
-          order ? "opacity-100" : "opacity-0",
+          isOpen ? "opacity-100" : "opacity-0",
         ].join(" ")}
         onClick={onClose}
       />
@@ -465,7 +451,7 @@ function OrderDrawer({
       <aside
         className={[
           "absolute right-0 top-0 h-full w-full max-w-lg translate-x-0 rounded-l-2xl bg-white shadow-xl transition-transform",
-          order ? "translate-x-0" : "translate-x-full",
+          isOpen ? "translate-x-0" : "translate-x-full",
         ].join(" ")}
         role="dialog"
         aria-modal="true"
@@ -473,7 +459,7 @@ function OrderDrawer({
       >
         <div className="flex items-center justify-between border-b px-4 py-3">
           <h3 className="text-base font-extrabold">
-            Chi tiết {order?.id ?? ""}
+            Chi tiết #{order?.order_id ?? ""}
           </h3>
           <button
             onClick={onClose}
@@ -484,67 +470,110 @@ function OrderDrawer({
           </button>
         </div>
 
-        {order ? (
-          <div className="space-y-4 overflow-y-auto px-4 py-4">
+        {loading ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black"></div>
+          </div>
+        ) : order ? (
+          <div className="space-y-4 overflow-y-auto px-4 py-4 h-[calc(100vh-80px)]">
             {/* Info */}
             <div className="rounded-lg border p-3">
-              <div className="grid gap-2 text-sm sm:grid-cols-2">
-                <Row label="Khách hàng" value={order.customerName} />
+              <div className="grid gap-2 text-sm">
+                <Row label="Khách hàng" value={order.full_name} />
                 <Row label="SĐT" value={order.phone} />
-                <Row label="Địa chỉ" value={order.address} />
-                <Row label="Thanh toán" value={METHODS[order.method]} />
+                <Row label="Email" value={order.user?.email || "-"} />
+                <Row
+                  label="Địa chỉ"
+                  value={`${order.address}, ${order.ward ? order.ward + ", " : ""}${
+                    order.district ? order.district + ", " : ""
+                  }${order.city}`}
+                />
+                <Row label="Thanh toán" value={METHODS[order.payment_method]} />
+                <Row
+                  label="TT thanh toán"
+                  value={<PaymentStatusBadge value={order.payment_status} />}
+                />
                 <Row
                   label="Ngày tạo"
-                  value={new Date(order.createdAt).toLocaleString("vi-VN", {
+                  value={new Date(order.created_at).toLocaleString("vi-VN", {
                     hour12: false,
                   })}
                 />
-                <Row
-                  label="Trạng thái"
-                  value={<StatusBadge value={order.status} />}
-                />
+                <Row label="Trạng thái" value={<StatusBadge value={order.status} />} />
                 {order.note ? <Row label="Ghi chú" value={order.note} /> : null}
+                {order.voucher_code ? (
+                  <Row label="Mã giảm giá" value={order.voucher_code} />
+                ) : null}
               </div>
             </div>
 
             {/* Items */}
             <div className="rounded-lg border">
               <div className="border-b px-3 py-2 text-sm font-semibold">
-                Sản phẩm ({order.items.length})
+                Sản phẩm ({order.items?.length || 0})
               </div>
               <ul className="divide-y">
-                {order.items.map((it) => (
-                  <li key={it.sku} className="flex items-center gap-3 p-3">
+                {order.items?.map((it) => (
+                  <li key={it.order_item_id} className="flex items-center gap-3 p-3">
                     <div className="h-16 w-16 overflow-hidden rounded border">
                       <img
-                        src={it.image}
-                        alt={it.name}
+                        src={it.product?.image || "/no-image.svg"}
+                        alt={it.product?.name || "Product"}
                         className="h-full w-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = "/no-image.svg";
+                        }}
                       />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-sm font-semibold">
-                        {it.name}
+                        {it.product?.name || `Product #${it.product_id}`}
                       </div>
                       <div className="text-xs text-neutral-600">
-                        SKU: {it.sku}
+                        SKU: {it.product?.sku || "-"}
                         {it.size ? ` • Size: ${it.size}` : ""}
                       </div>
                       <div className="mt-1 text-sm">
-                        x{it.qty} • {formatVnd(it.price)}
+                        x{it.quantity} • {formatVnd(it.unit_price)}
                       </div>
                     </div>
                     <div className="text-sm font-semibold">
-                      {formatVnd(it.price * it.qty)}
+                      {formatVnd(it.subtotal)}
                     </div>
                   </li>
                 ))}
+
+                {(!order.items || order.items.length === 0) && (
+                  <li className="p-4 text-center text-sm text-neutral-500">
+                    Không có sản phẩm
+                  </li>
+                )}
               </ul>
-              <div className="flex items-center justify-between border-t px-3 py-2 text-sm">
-                <span className="text-neutral-600">Tổng</span>
-                <span className="font-semibold">
-                  {formatVnd(getTotal(order))}
-                </span>
+
+              {/* Summary */}
+              <div className="border-t p-3 space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-neutral-600">Tạm tính:</span>
+                  <span>
+                    {formatVnd(
+                      order.total_price - order.shipping_fee + order.discount_amount
+                    )}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-neutral-600">Phí vận chuyển:</span>
+                  <span>{formatVnd(order.shipping_fee)}</span>
+                </div>
+                {order.discount_amount > 0 && (
+                  <div className="flex justify-between text-emerald-600">
+                    <span>Giảm giá:</span>
+                    <span>- {formatVnd(order.discount_amount)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-semibold text-base pt-2 border-t">
+                  <span>Tổng cộng:</span>
+                  <span>{formatVnd(order.total_price)}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -557,8 +586,8 @@ function OrderDrawer({
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-start gap-2">
-      <span className="min-w-28 text-neutral-500">{label}:</span>
-      <span className="font-medium">{value}</span>
+      <span className="min-w-32 text-neutral-500">{label}:</span>
+      <span className="font-medium flex-1">{value}</span>
     </div>
   );
 }

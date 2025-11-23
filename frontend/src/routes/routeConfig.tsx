@@ -2,6 +2,8 @@ import { lazy, type ComponentType, type LazyExoticComponent } from "react";
 
 import Layout from "../components/Layout/Layout";
 import { PATHS } from "./paths";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import path from "path";
 
 // --- Public (lazy) ---
 const Home = lazy(() => import("../pages/Home/Home"));
@@ -18,7 +20,7 @@ const Search = lazy(() => import("../pages/Search/Search"));
 const FashionNewsPage = lazy(
   () => import("../pages/FashionNews/FashionNewsPage")
 );
-const OrderPolicy = lazy(() => import("../pages/policy/OrderPolicy")); // ✅ thêm dòng này
+const OrderPolicy = lazy(() => import("../pages/policy/OrderPolicy")); 
 const PrivacyPolicy = lazy(() => import("../pages/policy/PrivacyPolicy"));
 const ExchangeWarrantyPolicy = lazy(
   () => import("../pages/policy/ExchangeWarrantyPolicy")
@@ -35,6 +37,10 @@ const AdminProducts = lazy(
 );
 const AdminCustomers = lazy(
   () => import("../pages/Admin/AdminCustomers/AdminCustomers")
+);
+const AdminChat = lazy(() => import("../pages/Admin/AdminChat/AdminChat"));
+const orderHistory = lazy(
+  () => import("../pages/payment/orderHistory")
 );
 
 // --- Các định nghĩa Type ---
@@ -55,24 +61,24 @@ export const ROUTES: RouteItem[] = [
   // --- Public Routes ---
   { path: PATHS.HOME, element: Home, layout: { type: "public" } },
 
-  // ✅ Trang tất cả sản phẩm
+  //  Trang tất cả sản phẩm
   { path: "/san-pham", element: ProductsPage, layout: { type: "public" } },
 
-  // ✅ Trang danh mục
+  // Trang danh mục
   {
     path: "/san-pham/danh-muc/:id",
     element: CategoryPage,
     layout: { type: "public" },
   },
 
-  // ✅ Trang chi tiết sản phẩm
+  // Trang chi tiết sản phẩm
   {
     path: "/san-pham/:id",
     element: ProductDetail,
     layout: { type: "public", props: { noBanner: true } },
   },
 
-  // ✅ Trang hướng dẫn đặt hàng
+  // Trang hướng dẫn đặt hàng
   {
     path: "/huong-dan-dat-hang",
     element: OrderPolicy,
@@ -93,7 +99,7 @@ export const ROUTES: RouteItem[] = [
     element: ExchangeWarrantyPolicy,
     layout: { type: "public", props: { noBanner: true } },
   },
-  // ✅ Trang tin tức thời trang
+  // Trang tin tức thời trang
   {
     path: PATHS.FASHION_NEWS,
     element: FashionNewsPage,
@@ -131,4 +137,11 @@ export const ROUTES: RouteItem[] = [
     element: AdminCustomers,
     layout: { type: "none" },
   },
+  {
+    path: PATHS.ADMIN_SETTINGS,
+    element: lazy(() => import("../pages/Admin/AdminSetting/AdminSetting")),
+    layout: { type: "none" },
+  },
+  { path: "/admin/chat", element: AdminChat, layout: { type: "none" } },
+  { path: "/order-history", element: orderHistory, layout: { type: "public" } },  
 ];
