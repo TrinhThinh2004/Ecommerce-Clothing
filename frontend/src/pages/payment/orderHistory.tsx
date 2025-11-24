@@ -41,7 +41,7 @@ export default function OrderHistory() {
     <div className="container mx-auto p-6">
       <h1 className="text-xl font-bold mb-4">Lịch sử đơn hàng</h1>
 
-      {/* Danh sách đơn hàng */}
+
       <div className="space-y-4">
         {orders.length === 0 ? (
           <p>Không có đơn hàng nào.</p>
@@ -71,7 +71,6 @@ export default function OrderHistory() {
         )}
       </div>
 
-      {/* Chi tiết đơn hàng */}
       {selectedOrder && (
         <div className="mt-8 border rounded-lg p-5 shadow bg-white">
           <h2 className="text-lg font-bold mb-2">
