@@ -27,7 +27,7 @@ export default function CategoryPage() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
 
-  const limit = 8; // ✅ mỗi trang hiển thị 8 sản phẩm
+  const limit = 8; 
 
   useEffect(() => {
     if (!id) return;
@@ -39,7 +39,7 @@ export default function CategoryPage() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  // ✅ Phân trang phía frontend
+ 
   const paginatedProducts = useMemo(() => {
     if (!category?.products) return [];
     const start = (page - 1) * limit;
@@ -67,7 +67,7 @@ export default function CategoryPage() {
         </div>
       )}
 
-      {/* ✅ Gọi component phân trang */}
+
       {totalPages > 1 && (
         <Pagination
           page={page}

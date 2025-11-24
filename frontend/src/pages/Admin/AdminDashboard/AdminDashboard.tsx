@@ -296,11 +296,11 @@ export default function AdminDashboard() {
             <MessageSquare className="h-5 w-5" />
           </ManageTile>
           <ManageTile
-            to="/admin/settings"
-            title="Cấu hình cửa hàng"
-            desc="Thanh toán, vận chuyển, kênh bán"
+            to="/admin/chat"
+            title="Chat với khách hàng"
+            desc="Xem và trả lời tin nhắn"
           >
-            <Settings className="h-5 w-5" />
+            <MessageSquare className="h-5 w-5" />
           </ManageTile>
         </div>
       </div>

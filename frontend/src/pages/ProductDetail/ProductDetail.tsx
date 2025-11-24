@@ -136,7 +136,7 @@ export default function ProductDetail() {
       const result = await addToCartAPI(product.product_id, qty, size);
 
       if (result) {
-        toast.success(` Đã thêm ${qty} sản phẩm vào giỏ!`);
+        toast.success(` Đã thêm  sản phẩm vào giỏ!`);
         window.dispatchEvent(new Event("cartUpdated"));
 
         if (buyNow) {

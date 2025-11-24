@@ -22,7 +22,7 @@ export default function SideNav({ onNavigate }: Props) {
     { to: "/admin/chat", label: "Chat", icon: <MessageSquare /> },
     { to: "/admin/vouchers", label: "Mã giảm giá", icon: <TicketPercent /> },
     { to: "/admin/reviews", label: "Đánh giá", icon: <MessageSquare /> },
-    { to: "/admin/settings", label: "Cấu hình", icon: <Settings /> },
+    // { to: "/admin/settings", label: "Cấu hình", icon: <Settings /> },
   ];
 
   return (
