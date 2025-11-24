@@ -20,7 +20,7 @@ export default function ProductsPage() {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
 
-  const limit = 8; // mỗi trang hiển thị 8 sản phẩm
+  const limit = 8; 
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -30,7 +30,7 @@ export default function ProductsPage() {
 
         const res = await axios.get(`${API_URL}/api/v1/products`);
 
-        // 🔍 Kiểm tra dữ liệu trả về từ API
+        //  Kiểm tra dữ liệu trả về từ API
         const data = res.data?.data;
         if (Array.isArray(data)) {
           setProducts(data);
@@ -49,7 +49,7 @@ export default function ProductsPage() {
     fetchProducts();
   }, []);
 
-  // ✅ Phân trang phía frontend
+  //  Phân trang phía frontend
   const paginatedProducts = useMemo(() => {
     const start = (page - 1) * limit;
     return products.slice(start, start + limit);
