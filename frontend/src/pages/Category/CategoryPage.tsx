@@ -27,7 +27,10 @@ export default function CategoryPage() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
 
+
+
   const limit = 8; 
+
 
   useEffect(() => {
     if (!id) return;
@@ -39,7 +42,8 @@ export default function CategoryPage() {
       .finally(() => setLoading(false));
   }, [id]);
 
- 
+
+
   const paginatedProducts = useMemo(() => {
     if (!category?.products) return [];
     const start = (page - 1) * limit;
@@ -66,6 +70,8 @@ export default function CategoryPage() {
           ))}
         </div>
       )}
+
+
 
 
       {totalPages > 1 && (

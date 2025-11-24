@@ -24,7 +24,7 @@ import {
 import { toast } from "react-toastify";
 
 const PAGE_SIZE = 10;
-
+const LOW_STOCK_THRESHOLD = 5; // Sắp hết khi <= 5
 export default function AdminCustomers() {
   const [items, setItems] = useState<AdminCustomer[]>([]);
   const [loading, setLoading] = useState(true);
