@@ -7,10 +7,10 @@ import { clearCart } from "../../api/cart";
 export default function PaymentResult() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [countdown, setCountdown] = useState(10); // Tăng thời gian chờ lên 10s
+  const [countdown, setCountdown] = useState(10); 
 
-  // SỬA LỖI: Đọc các tham số đã được backend xử lý, không còn đọc tham số thô từ VNPay
-  const status = searchParams.get("status"); // "paid" | "failed" | "error"
+  
+  const status = searchParams.get("status"); 
   const orderId = searchParams.get("orderId");
   const amount = searchParams.get("amount");
   const txnRef = searchParams.get("txnRef");
@@ -21,11 +21,11 @@ export default function PaymentResult() {
     // Nếu thanh toán thành công, tự động xóa giỏ hàng
     if (status === "paid") {
       clearCart().then(() => {
-        console.log("✅ Giỏ hàng đã được xóa sau khi thanh toán thành công.");
+        console.log(" Giỏ hàng đã được xóa sau khi thanh toán thành công.");
         // Gửi sự kiện để các component khác (như header) cập nhật lại UI giỏ hàng
         window.dispatchEvent(new Event("cartUpdated"));
       }).catch((err) => {
-        console.error("❌ Lỗi khi xóa giỏ hàng:", err);
+        console.error(" Lỗi khi xóa giỏ hàng:", err);
       });
     }
 
@@ -45,9 +45,8 @@ export default function PaymentResult() {
     return () => clearInterval(timer);
   }, [status, navigate]);
 
-  // --- Giao diện hiển thị dựa trên trạng thái ---
 
-  // Trường hợp 1: Thanh toán THÀNH CÔNG
+
   if (status === "paid") {
     return (
       <div className="min-h-screen bg-gradient-to-b from-emerald-50 to-emerald-100 flex items-center justify-center p-4">
@@ -102,7 +101,7 @@ export default function PaymentResult() {
     );
   }
 
-  // Trường hợp 2: Thanh toán THẤT BẠI
+
   if (status === "failed") {
     const errorMessages: Record<string, string> = {
       invalid_checksum: "Giao dịch không hợp lệ do chữ ký không đúng. Vui lòng thử lại.",
@@ -128,7 +127,7 @@ export default function PaymentResult() {
     );
   }
 
-  // Trường hợp 3: Lỗi không xác định hoặc lỗi server
+ 
   return (
     <div className="min-h-screen bg-gradient-to-b from-amber-50 to-amber-100 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">

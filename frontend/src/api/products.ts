@@ -9,7 +9,7 @@ export async function fetchProducts(): Promise<Product[]> {
     const res = await axiosInstance.get(`${API_URL}/api/v1/products`);
     console.log("API trả về:", res.data);
 
-    // Nếu API trả về { data: [...] } hoặc trả về mảng trực tiếp
+   
     const data: Product[] = Array.isArray(res.data)
       ? res.data
       : Array.isArray(res.data.data)

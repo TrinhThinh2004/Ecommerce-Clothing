@@ -89,7 +89,7 @@ const mockArticles: Article[] = [
   },
 ];
 
-//  COMPONENT CON ĐỂ RENDER MỘT THẺ BÀI VIẾT
+
 function ArticleCard({ article }: { article: Article }) {
   return (
     <a

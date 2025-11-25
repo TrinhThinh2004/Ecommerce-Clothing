@@ -176,7 +176,7 @@ export const toggleCustomerStatus = async (req: Request, res: Response) => {
  * Lấy danh sách tất cả đơn hàng
  * GET /api/v1/admin/orders
  */
-// src/controllers/admin.controller.ts
+
 
 export const getAllOrders = async (req: Request, res: Response) => {
   try {
@@ -194,7 +194,7 @@ export const getAllOrders = async (req: Request, res: Response) => {
             {
               model: Product,
               as: "product",
-              // ✅ CHỈ LẤY CÁC CỘT TỒN TẠI
+              //  CHỈ LẤY CÁC CỘT TỒN TẠI
               attributes: ["product_id", "name"],
             },
           ],
@@ -203,14 +203,14 @@ export const getAllOrders = async (req: Request, res: Response) => {
       order: [["created_at", "DESC"]],
     });
 
-    console.log(`📦 Admin: Loaded ${orders.length} orders`);
+   
 
     return res.json({
       success: true,
       data: orders,
     });
   } catch (err) {
-    console.error("❌ getAllOrders error:", err);
+    console.error(" getAllOrders error:", err);
     return res.status(500).json({
       success: false,
       message: "Lỗi khi lấy danh sách đơn hàng",
@@ -237,7 +237,7 @@ export const getOrderDetail = async (req: Request, res: Response) => {
             {
               model: Product,
               as: "product",
-              // ✅ CHỈ LẤY CÁC CỘT TỒN TẠI
+              //  CHỈ LẤY CÁC CỘT TỒN TẠI
               attributes: ["product_id", "name"],
             },
           ],
@@ -257,7 +257,7 @@ export const getOrderDetail = async (req: Request, res: Response) => {
       data: order,
     });
   } catch (err) {
-    console.error("❌ getOrderDetail error:", err);
+    console.error(" getOrderDetail error:", err);
     return res.status(500).json({
       success: false,
       message: "Lỗi khi lấy chi tiết đơn hàng",
