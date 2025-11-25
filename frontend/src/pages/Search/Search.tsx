@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import ProductGrid from "../../components/Products/ProductGrid";
 import axios from "axios";
 import { toast } from "react-toastify";
-import type { Product } from "../../types/product"; // ✅ import kiểu Product
+import type { Product } from "../../types/product"; 
 
 export default function Search() {
   const [params] = useSearchParams();

@@ -48,7 +48,7 @@ export default function ProductCard({ item }: Props) {
       const result = await addToCartAPI(item.product_id, 1, "M");
 
       if (result) {
-        toast.success(` Đã thêm "${item.name}" vào giỏ!`);
+        toast.success(` Đã thêm sản phẩm vào giỏ!`);
         // Dispatch event để cập nhật số lượng giỏ hàng
         window.dispatchEvent(new Event("cartUpdated"));
       } else {

@@ -57,7 +57,7 @@ export default function Cart() {
     loadCart();
 
     const handleCartUpdate = () => {
-      console.log("🔄 Cart updated event, reloading...");
+      console.log(" Cart updated event, reloading...");
       loadCart();
     };
 
