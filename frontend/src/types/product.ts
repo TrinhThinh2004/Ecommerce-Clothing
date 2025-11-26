@@ -4,7 +4,9 @@ export type Product = {
   description?: string | null;
   price: number; // đơn vị VND
   stock_quantity: number;
-  image_url?: string | null;
+ image_url?: string | null | undefined;
+
+
   category_id?: number | null;
   brand_id?: number | null;
   created_at?: string;
