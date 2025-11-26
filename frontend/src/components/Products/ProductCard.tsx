@@ -2,15 +2,7 @@
 import { Link } from "react-router-dom";
 import { formatVnd } from "../../utils/format";
 import { ShoppingCart, Package } from "lucide-react";
-
-interface Product {
-  product_id: number;
-  name: string;
-  price: number;
-  stock_quantity: number;
-  image_url?: string;
-  category_id?: number;
-}
+import type { Product } from "../../types/product";
 
 interface Props {
   item: Product;
@@ -19,9 +11,10 @@ interface Props {
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export default function ProductCard({ item }: Props) {
-  const imageUrl = item.image_url?.startsWith("http")
-    ? item.image_url
-    : `${API_BASE_URL}${item.image_url || ""}`;
+  const imageUrl = 
+    item.image_url && item.image_url.startsWith("http")
+      ? item.image_url
+      : `${API_BASE_URL}${item.image_url || ""}`;
 
   const isOutOfStock = item.stock_quantity <= 0;
   const isLowStock = item.stock_quantity > 0 && item.stock_quantity <= 5;
@@ -41,7 +34,6 @@ export default function ProductCard({ item }: Props) {
       )}
 
       <Link to={`/san-pham/${item.product_id}`} className="block">
-        {/* Image Container */}
         <div className="relative aspect-square overflow-hidden bg-neutral-100">
           <img
             src={imageUrl}
@@ -50,11 +42,11 @@ export default function ProductCard({ item }: Props) {
               isOutOfStock ? "opacity-50 grayscale" : ""
             }`}
             onError={(e) => {
-              e.currentTarget.src = "https://via.placeholder.com/400x400?text=No+Image";
+              e.currentTarget.src =
+                "https://via.placeholder.com/400x400?text=No+Image";
             }}
           />
-          
-          {/* Overlay khi hết hàng */}
+
           {isOutOfStock && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/40">
               <div className="text-center">
@@ -65,7 +57,6 @@ export default function ProductCard({ item }: Props) {
           )}
         </div>
 
-        {/* Product Info */}
         <div className="p-4">
           <h3 className="mb-2 line-clamp-2 font-semibold text-neutral-800 transition-colors group-hover:text-black">
             {item.name}
@@ -76,31 +67,26 @@ export default function ProductCard({ item }: Props) {
               <p className="text-lg font-bold text-black">
                 {formatVnd(item.price)}
               </p>
-              
-              {/* Stock Info */}
+
               <div className="mt-1 flex items-center gap-1 text-xs">
                 {isOutOfStock ? (
-                  <span className="text-red-600 font-semibold">
-                     Hết hàng
-                  </span>
+                  <span className="text-red-600 font-semibold">Hết hàng</span>
                 ) : isLowStock ? (
                   <span className="text-yellow-600 font-semibold">
-                     Chỉ còn {item.stock_quantity} sản phẩm
+                    Chỉ còn {item.stock_quantity} sản phẩm
                   </span>
                 ) : (
                   <span className="text-green-600 font-semibold">
-                     Còn hàng ({item.stock_quantity})
+                    Còn hàng ({item.stock_quantity})
                   </span>
                 )}
               </div>
             </div>
 
-            {/* Quick Add Button (chỉ hiện khi còn hàng) */}
             {!isOutOfStock && (
               <button
                 onClick={(e) => {
                   e.preventDefault();
-                  // Quick add to cart functionality
                   console.log("Quick add:", item.product_id);
                 }}
                 className="rounded-full bg-black p-2 text-white opacity-0 transition-all hover:bg-neutral-800 group-hover:opacity-100"
