@@ -38,6 +38,31 @@ export const createOrder = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Giỏ hàng trống!" });
     }
 
+    const productIds = items.map((item: any) => item.product_id);
+    const products = await Product.findAll({
+      where: { product_id: productIds },
+      transaction: t,
+    });
+
+    const productMap = new Map(products.map((p) => [p.product_id, p]));
+
+    for (const item of items) {
+      const product = productMap.get(item.product_id);
+      if (!product) {
+        await t?.rollback();
+        return res.status(404).json({
+          message: `Sản phẩm với ID ${item.product_id} không tồn tại`,
+        });
+      }
+
+      if (item.quantity > product.stock_quantity) {
+        await t?.rollback();
+        return res.status(400).json({
+          message: `Sản phẩm "${product.name}" chỉ còn ${product.stock_quantity} sản phẩm`,
+        });
+      }
+    }
+
     const order = await Order.create(
       {
         user_id,
@@ -59,7 +84,7 @@ export const createOrder = async (req: Request, res: Response) => {
       { transaction: t }
     );
 
-    // Tạo các OrderItem
+    // Tạo các OrderItem và trừ tồn kho
     for (const item of items) {
       await OrderItem.create(
         {
@@ -72,6 +97,12 @@ export const createOrder = async (req: Request, res: Response) => {
         },
         { transaction: t }
       );
+
+      const product = productMap.get(item.product_id);
+      if (product) {
+        product.stock_quantity -= item.quantity;
+        await product.save({ transaction: t });
+      }
     }
 
     await t?.commit();

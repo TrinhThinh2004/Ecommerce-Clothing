@@ -13,7 +13,7 @@ import {
   Trash2,
   Send,
 } from "lucide-react";
-import { addToCart as addToCartAPI } from "../../api/cart";
+import { addToCart as addToCartAPI, fetchCart } from "../../api/cart";
 import type { Product } from "../../types/product";
 import { formatVnd } from "../../utils/format";
 import { toast } from "react-toastify";
@@ -38,6 +38,7 @@ export default function ProductDetail() {
   const [size, setSize] = useState<string | undefined>();
   const [qty, setQty] = useState(1);
   const [showSizeGuide, setShowSizeGuide] = useState(false);
+  const [reservedQty, setReservedQty] = useState(0);
 
   // Review state
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -56,9 +57,28 @@ export default function ProductDetail() {
       fetchProduct();
       loadReviews();
       checkUserHasReviewed();
+      loadReservedQty();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  useEffect(() => {
+    const handleCartUpdate = () => {
+      loadReservedQty();
+    };
+    window.addEventListener("cartUpdated", handleCartUpdate);
+    return () => window.removeEventListener("cartUpdated", handleCartUpdate);
+  }, []);
+
+  useEffect(() => {
+    if (!product) return;
+    const available = Math.max(0, product.stock_quantity - reservedQty);
+    if (available <= 0) {
+      setQty(1);
+      return;
+    }
+    setQty((prev) => Math.min(prev, available));
+  }, [product?.stock_quantity, reservedQty]);
 
   const fetchProduct = async () => {
     try {
@@ -70,6 +90,24 @@ export default function ProductDetail() {
       toast.error("Không thể tải thông tin sản phẩm");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadReservedQty = async () => {
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) {
+        setReservedQty(0);
+        return;
+      }
+      const cartItems = await fetchCart();
+      const current = cartItems.find(
+        (item) => item.product?.product_id === Number(id)
+      );
+      setReservedQty(current ? current.quantity : 0);
+    } catch (err) {
+      console.error("Error loading reserved quantity:", err);
+      setReservedQty(0);
     }
   };
 
@@ -125,6 +163,19 @@ export default function ProductDetail() {
       return;
     }
 
+    const availableStock = Math.max(0, product.stock_quantity - reservedQty);
+
+    if (availableStock <= 0) {
+      toast.error("Sản phẩm đã hết hàng.");
+      return;
+    }
+
+    if (qty > availableStock) {
+      toast.warning(`Chỉ còn ${availableStock} sản phẩm trong kho.`);
+      setQty(Math.max(1, availableStock));
+      return;
+    }
+
     const token = localStorage.getItem("accessToken");
     if (!token) {
       toast.error(" Vui lòng đăng nhập để thêm vào giỏ!");
@@ -136,7 +187,8 @@ export default function ProductDetail() {
       const result = await addToCartAPI(product.product_id, qty, size);
 
       if (result) {
-        toast.success(` Đã thêm  sản phẩm vào giỏ!`);
+        toast.success(` Đã thêm sản phẩm vào giỏ!`);
+        setReservedQty((prev) => prev + qty);
         window.dispatchEvent(new Event("cartUpdated"));
 
         if (buyNow) {
@@ -147,9 +199,14 @@ export default function ProductDetail() {
       } else {
         toast.error(" Không thể thêm vào giỏ. Vui lòng thử lại!");
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error adding to cart:", error);
-      toast.error("Có lỗi xảy ra. Vui lòng thử lại!");
+      const message =
+        typeof error === "object" && error !== null && "response" in error
+          ? ((error as { response?: { data?: { message?: string } } }).response?.data?.message ??
+            "Có lỗi xảy ra. Vui lòng thử lại!")
+          : "Có lỗi xảy ra. Vui lòng thử lại!";
+      toast.error(message);
     }
   };
 
@@ -221,6 +278,10 @@ export default function ProductDetail() {
   const imageUrl = mainImg?.startsWith("http")
     ? mainImg
     : `http://localhost:5000${mainImg || ""}`;
+  const stockQuantity = product?.stock_quantity ?? 0;
+  const availableStock = Math.max(0, stockQuantity - reservedQty);
+  const isOutOfStock = availableStock <= 0;
+  const isLowStock = availableStock > 0 && availableStock <= 5;
 
   if (loading) {
     return (
@@ -280,6 +341,15 @@ export default function ProductDetail() {
             <div className="mt-3 text-2xl font-bold text-black">
               {formatVnd(Number(product.price))}
             </div>
+            <div className="mt-1 text-sm font-semibold">
+              {isOutOfStock ? (
+                <span className="text-red-600">Sản phẩm tạm hết hàng</span>
+              ) : isLowStock ? (
+                <span className="text-amber-600">⚠️ Chỉ còn {availableStock} sản phẩm</span>
+              ) : (
+                <span className="text-emerald-600">✓ Còn {availableStock} sản phẩm</span>
+              )}
+            </div>
 
             {/* SIZE */}
             <div className="mt-4">
@@ -333,17 +403,26 @@ export default function ProductDetail() {
                   value={qty}
                   onChange={(e) => {
                     const val = parseInt(e.target.value) || 1;
-                    setQty(Math.max(1, val));
+                    const maxAllowed = availableStock > 0 ? availableStock : 1;
+                    setQty(Math.max(1, Math.min(val, maxAllowed)));
                   }}
                   className="h-9 w-14 border-x border-neutral-300 text-center outline-none"
                 />
                 <button
-                  className="grid h-9 w-9 place-content-center hover:bg-neutral-100 transition-colors"
-                  onClick={() => setQty((q) => q + 1)}
+                  className="grid h-9 w-9 place-content-center hover:bg-neutral-100 transition-colors disabled:opacity-50"
+                  onClick={() =>
+                    setQty((q) => (availableStock > 0 ? Math.min(availableStock, q + 1) : q))
+                  }
+                  disabled={isOutOfStock || qty >= availableStock}
                 >
                   <Plus className="h-4 w-4" />
                 </button>
               </div>
+              {isOutOfStock && (
+                <p className="mt-2 text-sm text-red-600">
+                  Sản phẩm đã hết hàng. Vui lòng quay lại sau hoặc chọn sản phẩm khác.
+                </p>
+              )}
             </div>
 
             {/* BUTTONS */}
@@ -351,7 +430,7 @@ export default function ProductDetail() {
               <button
                 className="inline-flex items-center justify-center gap-2 rounded-md bg-black px-6 py-3 font-semibold text-white transition hover:bg-neutral-800 disabled:opacity-50"
                 onClick={() => requireLogin(() => addToCart(false))}
-                disabled={!size}
+                disabled={!size || isOutOfStock}
               >
                 <ShoppingCart className="h-5 w-5" />
                 Thêm vào giỏ
@@ -360,7 +439,7 @@ export default function ProductDetail() {
               <button
                 className="rounded-md border-2 border-black px-6 py-3 font-semibold hover:bg-black hover:text-white transition disabled:opacity-50"
                 onClick={() => requireLogin(() => addToCart(true))}
-                disabled={!size}
+                disabled={!size || isOutOfStock}
               >
                 Mua ngay
               </button>

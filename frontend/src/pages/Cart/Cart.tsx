@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Trash2, Plus, Minus, CreditCard, Truck, Wallet } from "lucide-react";
+import { Trash2, Plus, Minus, CreditCard, Truck, Wallet, AlertTriangle } from "lucide-react";
 import { formatVnd } from "../../utils/format";
 import {
   fetchCart,
@@ -80,12 +80,34 @@ export default function Cart() {
   
   const discount = applied.amount;
   const grand = Math.max(0, subTotal + ship - discount);
+  const hasInvalidQty = useMemo(
+    () =>
+      items.some(
+        (it) => (it.item.stock_quantity ?? 0) <= 0 || it.qty > (it.item.stock_quantity ?? 0)
+      ),
+    [items]
+  );
 
   const changeQty = async (cart_id: number, delta: number) => {
     const target = items.find((it) => it.cart_id === cart_id);
     if (!target) return;
 
+    const maxQty = target.item.stock_quantity ?? Infinity;
+
+    if (delta > 0) {
+      if (maxQty <= 0) {
+        toast.error(`"${target.item.name}" đã hết hàng. Vui lòng xóa khỏi giỏ.`);
+        return;
+      }
+
+      if (target.qty >= maxQty) {
+        toast.warning(`"${target.item.name}" chỉ còn ${maxQty} sản phẩm.`);
+        return;
+      }
+    }
+
     const newQty = Math.max(1, target.qty + delta);
+    if (newQty === target.qty) return;
 
 
     setItems((prev) =>
@@ -98,8 +120,14 @@ export default function Cart() {
         console.warn("Update failed:", cart_id);
         loadCart();
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Error updating quantity:", err);
+      const message =
+        typeof err === "object" && err !== null && "response" in err
+          ? ((err as { response?: { data?: { message?: string } } }).response?.data?.message ??
+            "Không thể cập nhật số lượng")
+          : "Không thể cập nhật số lượng";
+      toast.error(message);
       loadCart();
     }
   };
@@ -150,6 +178,11 @@ export default function Cart() {
     toast.warning(" Giỏ hàng trống.");
     return;
   }
+
+    if (hasInvalidQty) {
+      toast.error("Vui lòng điều chỉnh các sản phẩm hết hàng trước khi đặt.");
+      return;
+    }
 
   if (!name || !phone || !address || !city) {
     toast.warning(" Vui lòng điền đầy đủ thông tin giao hàng.");
@@ -380,6 +413,9 @@ export default function Cart() {
                       it.item.image && it.item.image.trim().length > 0
                         ? it.item.image
                         : "/no-image.svg";
+                    const stockQty = it.item.stock_quantity ?? 0;
+                    const outOfStock = stockQty <= 0;
+                    const nearlyOut = !outOfStock && stockQty <= 5;
 
                     return (
                       <li
@@ -409,11 +445,29 @@ export default function Cart() {
                           <div className="mt-1 text-sm text-neutral-600">
                             Size: {it.size ?? "-"} • Giá: {formatVnd(it.item.price)}
                           </div>
+                          <div className="mt-1 text-xs font-semibold">
+                            {outOfStock ? (
+                              <span className="text-red-600 inline-flex items-center gap-1">
+                                <AlertTriangle className="h-3.5 w-3.5" />
+                                Sản phẩm tạm hết hàng
+                              </span>
+                            ) : nearlyOut ? (
+                              <span className="text-amber-600">⚠️ Chỉ còn {stockQty} sản phẩm</span>
+                            ) : (
+                              <span className="text-emerald-600">✓ Còn {stockQty} sản phẩm</span>
+                            )}
+                          </div>
+                          {outOfStock && (
+                            <p className="mt-1 text-xs text-red-500">
+                              Vui lòng xóa sản phẩm hoặc chọn sản phẩm khác trước khi đặt hàng.
+                            </p>
+                          )}
                           <div className="mt-2 flex items-center gap-3">
                             <Qty
                               qty={it.qty}
                               onDec={() => changeQty(it.cart_id, -1)}
                               onInc={() => changeQty(it.cart_id, +1)}
+                              maxQty={stockQty}
                             />
                             <button
                               onClick={() => removeItemHandler(it.cart_id)}
@@ -469,6 +523,11 @@ export default function Cart() {
                 />
                 <hr className="my-2" />
                 <Row big label="Tổng cộng" value={formatVnd(grand)} />
+                {hasInvalidQty && (
+                  <p className="text-xs text-red-600">
+                    Một số sản phẩm đã hết hàng hoặc vượt quá tồn kho. Vui lòng điều chỉnh trước khi đặt.
+                  </p>
+                )}
               </div>
             </Card>
           </section>
@@ -492,7 +551,7 @@ export default function Cart() {
             </Link>
             <button
               onClick={placeOrder}
-              disabled={!items.length}
+              disabled={!items.length || hasInvalidQty}
               className="rounded-md bg-black px-4 py-2 text-sm font-semibold text-white transition hover:bg-black/90 disabled:cursor-not-allowed disabled:opacity-60"
             >
               Đặt hàng
@@ -518,11 +577,18 @@ function Qty({
   qty,
   onDec,
   onInc,
+  maxQty,
 }: {
   qty: number;
   onDec: () => void;
   onInc: () => void;
+  maxQty?: number;
 }) {
+  const canInc =
+    typeof maxQty === "number" && !Number.isNaN(maxQty)
+      ? qty < maxQty && maxQty > 0
+      : true;
+
   return (
     <div className="flex items-center rounded-md border border-neutral-300">
       <button
@@ -538,8 +604,9 @@ function Qty({
         className="h-8 w-12 border-x border-neutral-300 text-center outline-none"
       />
       <button
-        className="grid h-8 w-8 place-content-center hover:bg-neutral-50"
+        className="grid h-8 w-8 place-content-center hover:bg-neutral-50 disabled:opacity-50"
         onClick={onInc}
+        disabled={!canInc}
       >
         <Plus className="h-4 w-4" />
       </button>

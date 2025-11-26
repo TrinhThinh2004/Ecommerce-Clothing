@@ -7,6 +7,7 @@ export type ProductInfo = {
   name: string;
   image_url?: string;
   price?: number;
+  stock_quantity?: number;
 };
 
 export type CartItem = {
@@ -42,6 +43,7 @@ export type LocalCartItem = {
     name: string;
     image?: string;
     price: number;
+    stock_quantity: number;
   };
 };
 
@@ -67,6 +69,7 @@ export const mapCartItem = (it: CartItem): LocalCartItem => {
       name: it.product?.name ?? "Unknown",
       image: imageUrl,
       price: it.price_snapshot,
+      stock_quantity: it.product?.stock_quantity ?? 0,
     },
   };
 };
@@ -118,11 +121,13 @@ export const updateCartItem = async (
       { quantity },
       { headers: { Authorization: `Bearer ${token}` } }
     );
-    if (!res.data.success) return null;
+    if (!res.data.success) {
+      throw new Error(res.data.message || "Không thể cập nhật giỏ hàng");
+    }
     return res.data.item || null;
   } catch (err) {
     console.error("updateCartItem error:", err);
-    return null;
+    throw err;
   }
 };
 
