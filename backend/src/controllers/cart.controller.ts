@@ -4,19 +4,17 @@ import sequelize from "../config/database";
 import Cart from "../models/Cart";
 import Product from "../models/Product";
 
-// Utility validate input
+
 const parseQuantity = (value: any): number => {
   const qty = Number(value);
   if (isNaN(qty) || qty < 0) throw new Error("Số lượng không hợp lệ");
   return qty;
 };
 
-/**
- * 🛒 Lấy giỏ hàng theo user_id từ token
- */
+
 export const getCartByUser = async (req: Request, res: Response) => {
   try {
-    // ⭐ Lấy từ req.user (được set bởi middleware)
+    
     const user_id = req.user?.user_id;
     
     if (!user_id) {
@@ -31,14 +29,14 @@ export const getCartByUser = async (req: Request, res: Response) => {
       include: [{ 
         model: Product, 
         as: "product",
-        attributes: ['product_id', 'name', 'image_url', 'price']
+        attributes: ['product_id', 'name', 'image_url', 'price', 'stock_quantity']
       }],
       order: [["created_at", "DESC"]],
     });
 
     return res.json({ success: true, cart });
   } catch (err) {
-    console.error("❌ Lỗi getCartByUser:", err);
+    console.error(" Lỗi getCartByUser:", err);
     return res.status(500).json({ 
       success: false, 
       message: "Lỗi máy chủ" 
@@ -104,6 +102,16 @@ export const addToCart = async (req: Request, res: Response) => {
 
     let cartItem;
 
+    const totalRequested = qty + (existing ? existing.quantity : 0);
+
+    if (totalRequested > product.stock_quantity) {
+      await t.rollback();
+      return res.status(400).json({
+        success: false,
+        message: `Sản phẩm chỉ còn ${product.stock_quantity} sản phẩm trong kho`,
+      });
+    }
+
     if (existing) {
       // Cập nhật số lượng
       existing.quantity += qty;
@@ -130,7 +138,7 @@ export const addToCart = async (req: Request, res: Response) => {
 
   } catch (err) {
     await t.rollback();
-    console.error("❌ Lỗi addToCart:", err);
+    console.error(" Lỗi addToCart:", err);
     return res.status(500).json({ 
       success: false, 
       message: "Lỗi thêm vào giỏ hàng: " + (err as Error).message 
@@ -138,9 +146,7 @@ export const addToCart = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * ✏️ Cập nhật số lượng sản phẩm
- */
+
 export const updateCartItem = async (req: Request, res: Response) => {
   const t = await sequelize.transaction();
   
@@ -163,6 +169,16 @@ export const updateCartItem = async (req: Request, res: Response) => {
       });
     }
 
+    const product = await Product.findByPk(item.product_id, { transaction: t });
+
+    if (!product) {
+      await t.rollback();
+      return res.status(404).json({
+        success: false,
+        message: "Sản phẩm không tồn tại",
+      });
+    }
+
     if (qty <= 0) {
       // Xóa nếu qty <= 0
       await item.destroy({ transaction: t });
@@ -170,6 +186,14 @@ export const updateCartItem = async (req: Request, res: Response) => {
       return res.json({ 
         success: true, 
         message: "Đã xóa sản phẩm" 
+      });
+    }
+
+    if (qty > product.stock_quantity) {
+      await t.rollback();
+      return res.status(400).json({
+        success: false,
+        message: `Chỉ còn ${product.stock_quantity} sản phẩm trong kho`,
       });
     }
 
@@ -186,7 +210,7 @@ export const updateCartItem = async (req: Request, res: Response) => {
 
   } catch (err) {
     await t.rollback();
-    console.error("❌ Lỗi updateCartItem:", err);
+    console.error(" Lỗi updateCartItem:", err);
     return res.status(500).json({ 
       success: false, 
       message: "Lỗi cập nhật giỏ hàng" 
@@ -194,9 +218,7 @@ export const updateCartItem = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * 🗑️ Xóa sản phẩm khỏi giỏ hàng
- */
+
 export const removeCartItem = async (req: Request, res: Response) => {
   try {
     const cart_id = Number(req.params.id);
@@ -220,7 +242,7 @@ export const removeCartItem = async (req: Request, res: Response) => {
     });
 
   } catch (err) {
-    console.error("❌ Lỗi removeCartItem:", err);
+    console.error(" Lỗi removeCartItem:", err);
     return res.status(500).json({ 
       success: false, 
       message: "Lỗi xóa sản phẩm" 
@@ -245,7 +267,7 @@ export const clearCart = async (req: Request, res: Response) => {
     });
 
   } catch (err) {
-    console.error("❌ Lỗi clearCart:", err);
+    console.error(" Lỗi clearCart:", err);
     return res.status(500).json({ success: false, message: "Lỗi xóa giỏ hàng" });
   }
 };

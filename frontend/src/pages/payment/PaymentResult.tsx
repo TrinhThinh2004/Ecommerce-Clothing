@@ -22,26 +22,26 @@ export default function PaymentResult() {
     if (status === "paid") {
       clearCart().then(() => {
         console.log(" Giỏ hàng đã được xóa sau khi thanh toán thành công.");
-        // Gửi sự kiện để các component khác (như header) cập nhật lại UI giỏ hàng
+      
         window.dispatchEvent(new Event("cartUpdated"));
       }).catch((err) => {
         console.error(" Lỗi khi xóa giỏ hàng:", err);
       });
     }
 
-    // Tự động đếm ngược để chuyển về trang chủ
+   
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          navigate("/"); // Chuyển về trang chủ
+          navigate("/"); 
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
 
-    // Dọn dẹp interval khi component bị hủy
+   
     return () => clearInterval(timer);
   }, [status, navigate]);
 
@@ -72,7 +72,7 @@ export default function PaymentResult() {
             {amount && (
               <div className="flex justify-between">
                 <span className="text-neutral-600">Số tiền:</span>
-                {/* SỬA LỖI: VNPay gửi amount đã nhân 100, nên cần chia lại */}
+              
                 <span className="font-semibold">{formatVnd(parseInt(amount) / 100)}</span>
               </div>
             )}

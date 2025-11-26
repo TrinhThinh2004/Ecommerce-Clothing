@@ -64,6 +64,7 @@ class Order
     | "cancelled";
   public readonly created_at!: Date;
   public readonly updated_at!: Date;
+  public items?: any[];
 }
 
 Order.init(

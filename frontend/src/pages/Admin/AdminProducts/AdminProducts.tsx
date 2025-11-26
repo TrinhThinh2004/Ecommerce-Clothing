@@ -1,7 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useEffect, useMemo, useState, type ChangeEvent, type FC } from "react";
 import {
   PackagePlus, Search, Pencil, Trash2, Image as ImageIcon,
   DollarSign, Package, Archive, AlertTriangle,
+   
   CheckCircle2, XCircle, Eye, EyeOff, ServerCrash, RefreshCw, FileText, UploadCloud
 } from "lucide-react";
 import { formatVnd } from "../../../utils/format";
@@ -39,6 +42,7 @@ export default function AdminProducts() {
 
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<"all" | "active" | "inactive">("all");
+  const [stockFilter, setStockFilter] = useState<"all" | "inStock" | "out" | "low">("all");
   const [page, setPage] = useState(1);
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   const [showForm, setShowForm] = useState(false);
@@ -65,21 +69,27 @@ export default function AdminProducts() {
   const stats = useMemo(() => {
     const totalValue = items.reduce((sum, p) => {
         const price = typeof p.price === 'string' ? parseFloat(p.price) : p.price;
-        return sum + price * p.stock_quantity;
+        return sum + price * Math.max(0, p.stock_quantity);
     }, 0);
     const lowStockCount = items.filter((p) => p.stock_quantity > 0 && p.stock_quantity <= LOW_STOCK_THRESHOLD).length;
-    const outOfStockCount = items.filter((p) => p.stock_quantity === 0).length;
+    const outOfStockCount = items.filter((p) => p.stock_quantity <= 0).length;
     return { productCount: items.length, totalValue, lowStockCount, outOfStockCount };
   }, [items]);
   
   const filtered = useMemo(() => {
     const text = q.trim().toLowerCase();
     return items.filter((p) => {
+      const normalizedStock = Math.max(0, p.stock_quantity);
       const okText = !text || p.name.toLowerCase().includes(text);
       const okStatus = status === "all" || (status === "active" ? (p.active ?? true) : !(p.active ?? true));
-      return okText && okStatus;
+      const okStock =
+        stockFilter === "all" ||
+        (stockFilter === "inStock" && normalizedStock > LOW_STOCK_THRESHOLD) ||
+        (stockFilter === "low" && normalizedStock > 0 && normalizedStock <= LOW_STOCK_THRESHOLD) ||
+        (stockFilter === "out" && normalizedStock === 0);
+      return okText && okStatus && okStock;
     });
-  }, [items, q, status]);
+  }, [items, q, status, stockFilter]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paged = useMemo(() => {
@@ -87,7 +97,7 @@ export default function AdminProducts() {
     return filtered.slice(start, start + PAGE_SIZE);
   }, [filtered, page]);
 
-  useEffect(() => setPage(1), [q, status]);
+  useEffect(() => setPage(1), [q, status, stockFilter]);
 
   const allCheckedOnPage = paged.length > 0 && paged.every((p) => checked[p.product_id]);
   const someCheckedOnPage = paged.some((p) => checked[p.product_id]);
@@ -205,6 +215,12 @@ export default function AdminProducts() {
                         <option value="active">Đang bán</option>
                         <option value="inactive">Đã ẩn</option>
                     </select>
+                    <select value={stockFilter} onChange={(e) => setStockFilter(e.target.value as typeof stockFilter)} className="h-10 rounded-lg border border-neutral-300 bg-neutral-50 px-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                        <option value="all">Tồn kho: Tất cả</option>
+                        <option value="inStock">Còn hàng</option>
+                        <option value="low">Sắp hết</option>
+                        <option value="out">Hết hàng</option>
+                    </select>
                     {someCheckedOnPage && (
                         <div className="flex items-center gap-2">
                             <button onClick={handleDelSelected} className="action-btn-danger" title="Xoá các sản phẩm đã chọn"><Trash2 className="h-4 w-4" /></button>
@@ -276,21 +292,24 @@ export default function AdminProducts() {
 }
 
 
+ 
 const StatCard: FC<{ icon: FC<any>, title: string, value: string | number, color?: 'red' | 'yellow' }> = ({ icon: Icon, title, value, color }) => {
     const colors = { red: "text-red-600 bg-red-50", yellow: "text-yellow-600 bg-yellow-50", default: "text-blue-600 bg-blue-50" };
     return (<div className="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm"><div className={`mb-2 inline-flex h-10 w-10 items-center justify-center rounded-lg ${colors[color || 'default']}`}><Icon className="h-5 w-5" /></div><h3 className="text-xs font-medium uppercase text-neutral-500">{title}</h3><p className="text-2xl font-bold text-neutral-800">{value}</p></div>);
 };
 const StatusBadge: FC<{ active: boolean }> = ({ active }) => active ? <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700"><CheckCircle2 className="h-3.5 w-3.5" />Đang bán</span> : <span className="inline-flex items-center gap-1.5 rounded-full bg-neutral-100 px-2 py-1 text-xs font-semibold text-neutral-600"><XCircle className="h-3.5 w-3.5" />Đã ẩn</span>;
 const StockBadge: FC<{ stock: number }> = ({ stock }) => {
-  if (stock === 0) return <span className="font-semibold text-red-600">Hết hàng</span>;
-  if (stock <= LOW_STOCK_THRESHOLD) return <span className="font-semibold text-yellow-600">{stock} (Sắp hết)</span>;
-  return <span>{stock}</span>;
+  const normalized = Math.max(0, stock);
+  if (normalized === 0) return <span className="font-semibold text-red-600">Hết hàng</span>;
+  if (normalized <= LOW_STOCK_THRESHOLD) return <span className="font-semibold text-yellow-600">{normalized} (Sắp hết)</span>;
+  return <span>{normalized}</span>;
 }
 function PaginationSimple({ page, pageCount, onChange }: { page: number, pageCount: number, onChange: (p: number) => void; }) {
   if (pageCount <= 1) return null;
   const windowSize = 5;
   const half = Math.floor(windowSize / 2);
   let from = Math.max(1, page - half);
+  // eslint-disable-next-line prefer-const
   let to = Math.min(pageCount, from + windowSize - 1);
   if (to - from + 1 < windowSize) { from = Math.max(1, to - windowSize + 1); }
   const pages = Array.from({ length: to - from + 1 }, (_, i) => from + i);
@@ -338,6 +357,7 @@ function ProductFormModal({ initial, onClose, onSubmit, }: {
     }
   };
 
+   
   function handleChange(key: keyof EditPayload, val: any) { 
     setForm((prev) => ({ ...prev, [key]: val })); 
   }
@@ -368,6 +388,7 @@ function ProductFormModal({ initial, onClose, onSubmit, }: {
       <div className="grid max-h-[70vh] gap-6 overflow-y-auto p-6 sm:grid-cols-4">
         <div className="sm:col-span-2">
           <div className="space-y-4">
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-explicit-any, @typescript-eslint/no-explicit-any
             <FormInput label="Tên sản phẩm" value={form.name} onChange={(e:any) => handleChange("name", e.target.value)} icon={Package} required />
             <div>
               <label className="mb-1 block text-xs font-semibold text-neutral-600">Mô tả</label>
@@ -379,6 +400,7 @@ function ProductFormModal({ initial, onClose, onSubmit, }: {
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-explicit-any
               <FormInput label="Giá bán (VND)" type="number" value={form.price} onChange={(e:any) => handleChange("price", e.target.valueAsNumber)} icon={DollarSign} required />
               <FormInput label="Tồn kho" type="number" value={form.stock_quantity} onChange={(e:any) => handleChange("stock_quantity", e.target.valueAsNumber)} icon={Archive} required />
             </div>

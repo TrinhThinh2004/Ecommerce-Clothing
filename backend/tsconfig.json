@@ -19,7 +19,7 @@
 
     /* Module Resolution */
     "esModuleInterop": true,
-    "moduleResolution": "bundler"
+    "moduleResolution": "node"
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist"]

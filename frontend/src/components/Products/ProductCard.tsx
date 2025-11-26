@@ -1,160 +1,103 @@
-import { Link, useNavigate } from "react-router-dom";
-import type { Product } from "../../types/product";
+// src/components/Products/ProductCard.tsx
+import { Link } from "react-router-dom";
 import { formatVnd } from "../../utils/format";
-import { ShoppingCart } from "lucide-react";
-import { toast } from "react-toastify";
-import { addToCart as addToCartAPI } from "../../api/cart";
+import { ShoppingCart, Package } from "lucide-react";
+import type { Product } from "../../types/product";
 
-const API_URL = import.meta.env.VITE_API_URL;
-
-type Props = {
+interface Props {
   item: Product;
-};
+}
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export default function ProductCard({ item }: Props) {
-  const navigate = useNavigate();
+  const imageUrl = 
+    item.image_url && item.image_url.startsWith("http")
+      ? item.image_url
+      : `${API_BASE_URL}${item.image_url || ""}`;
 
-  // Kiểm tra còn hàng không
-  const isOutOfStock = item.stock_quantity === 0;
-
-  // Xử lý khi nhấn vào card (trừ các nút)
-  const handleCardClick = (e: React.MouseEvent) => {
-    const target = e.target as HTMLElement;
-    if (!target.closest('button') && !target.closest('a')) {
-      navigate(`/san-pham/${item.product_id}`);
-    }
-  };
-
-  // Xử lý thêm vào giỏ hàng - Kiểm tra tồn kho trước
-  const handleAddToCart = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-
-    // Kiểm tra hết hàng
-    if (isOutOfStock) {
-      toast.error(" Sản phẩm đã hết hàng!");
-      return;
-    }
-
-    // Kiểm tra đăng nhập
-    const token = localStorage.getItem("accessToken");
-    if (!token) {
-      toast.warning(" Vui lòng đăng nhập để thêm vào giỏ!");
-      setTimeout(() => navigate("/dang-nhap"), 1000);
-      return;
-    }
-
-    try {
-      // Gọi API thêm vào giỏ (mặc định size M, qty 1)
-      const result = await addToCartAPI(item.product_id, 1, "M");
-
-      if (result) {
-        toast.success(` Đã thêm sản phẩm vào giỏ!`);
-        // Dispatch event để cập nhật số lượng giỏ hàng
-        window.dispatchEvent(new Event("cartUpdated"));
-      } else {
-        toast.error(" Không thể thêm vào giỏ. Vui lòng thử lại!");
-      }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-      console.error("Error adding to cart:", error);
-      // Xử lý lỗi hết hàng từ API
-      if (error.response?.status === 400) {
-        toast.error(" Sản phẩm đã hết hàng hoặc không đủ số lượng!");
-      } else {
-        toast.error(" Có lỗi xảy ra. Vui lòng thử lại!");
-      }
-    }
-  };
+  const isOutOfStock = item.stock_quantity <= 0;
+  const isLowStock = item.stock_quantity > 0 && item.stock_quantity <= 5;
 
   return (
-    <article
-      onClick={handleCardClick}
-      className="group flex cursor-pointer flex-col overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md relative"
-    >
-      {/* Badge hết hàng */}
+    <div className="group relative overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm transition-all hover:shadow-lg">
+      {/* Stock Badge */}
       {isOutOfStock && (
-        <div className="absolute inset-0 z-10 bg-black/50 backdrop-blur-[2px] grid place-items-center">
-          <div className="bg-red-600 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-lg">
-            HẾT HÀNG
-          </div>
+        <div className="absolute top-2 right-2 z-10 rounded-full bg-red-500 px-3 py-1 text-xs font-bold text-white shadow-lg">
+          HẾT HÀNG
+        </div>
+      )}
+      {isLowStock && !isOutOfStock && (
+        <div className="absolute top-2 right-2 z-10 rounded-full bg-yellow-500 px-3 py-1 text-xs font-bold text-white shadow-lg">
+          SẮP HẾT
         </div>
       )}
 
-      {/* Ảnh sản phẩm */}
-      <div className="relative">
-        <div className="overflow-hidden">
+      <Link to={`/san-pham/${item.product_id}`} className="block">
+        <div className="relative aspect-square overflow-hidden bg-neutral-100">
           <img
-            src={`${API_URL}${item.image_url}`}
+            src={imageUrl}
             alt={item.name}
-            className={`h-56 w-full object-cover transition-transform duration-300 sm:h-64 group-hover:scale-105 ${
-              isOutOfStock ? "grayscale" : ""
+            className={`h-full w-full object-cover transition-transform duration-300 group-hover:scale-110 ${
+              isOutOfStock ? "opacity-50 grayscale" : ""
             }`}
-            loading="lazy"
+            onError={(e) => {
+              e.currentTarget.src =
+                "https://via.placeholder.com/400x400?text=No+Image";
+            }}
           />
-        </div>
 
-        {/* Nút thêm vào giỏ */}
-        {!isOutOfStock && (
-          <button
-            className="absolute right-2 top-2 grid h-9 w-9 place-content-center rounded-full bg-white/95 text-neutral-800 shadow hover:bg-white transition-transform hover:scale-110"
-            aria-label="Thêm vào giỏ hàng"
-            onClick={handleAddToCart}
-          >
-            <ShoppingCart className="h-4 w-4" />
-          </button>
-        )}
-      </div>
-
-      {/* Nội dung sản phẩm */}
-      <div className="flex flex-1 flex-col p-3">
-        {/* Tên sản phẩm */}
-        <h3 className="line-clamp-2 min-h-[40px] text-sm font-semibold leading-snug">
-          {item.name}
-        </h3>
-
-        {/* Tag "Hàng mới", "Giảm giá", "Hết hàng"... */}
-        <div className="mt-1 min-h-[22px] flex items-start gap-1">
-          {isOutOfStock ? (
-            <span className="inline-block rounded bg-red-100 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-red-700 whitespace-nowrap">
-              Hết hàng
-            </span>
-          ) : (
-            <>
-              {item.stock_quantity <= 5 && (
-                <span className="inline-block rounded bg-orange-100 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-orange-700 whitespace-nowrap">
-                  Chỉ còn {item.stock_quantity}
-                </span>
-              )}
-              {item.isNew && (
-                <span className="inline-block rounded bg-neutral-100 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-neutral-800 whitespace-nowrap">
-                  Hàng Mới
-                </span>
-              )}
-              {item.voucherText && (
-                <span className="inline-block rounded bg-amber-400 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-black whitespace-nowrap">
-                  {item.voucherText}
-                </span>
-              )}
-            </>
+          {isOutOfStock && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+              <div className="text-center">
+                <Package className="mx-auto h-12 w-12 text-white mb-2" />
+                <p className="text-white font-bold text-lg">Tạm hết hàng</p>
+              </div>
+            </div>
           )}
         </div>
 
-        {/* Giá và nút chi tiết */}
-        <div className="mt-auto flex items-center justify-between pt-2">
-          <div className={`text-[13px] font-semibold ${isOutOfStock ? "text-neutral-400" : "text-black"}`}>
-            {formatVnd(Number(item.price))}
-          </div>
+        <div className="p-4">
+          <h3 className="mb-2 line-clamp-2 font-semibold text-neutral-800 transition-colors group-hover:text-black">
+            {item.name}
+          </h3>
 
-          {/* Nút "Chi tiết" */}
-          <Link
-            to={`/san-pham/${item.product_id}`}
-            onClick={(e) => e.stopPropagation()}
-            className="rounded-md bg-black px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-sky-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
-          >
-            Chi tiết
-          </Link>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-lg font-bold text-black">
+                {formatVnd(item.price)}
+              </p>
+
+              <div className="mt-1 flex items-center gap-1 text-xs">
+                {isOutOfStock ? (
+                  <span className="text-red-600 font-semibold">Hết hàng</span>
+                ) : isLowStock ? (
+                  <span className="text-yellow-600 font-semibold">
+                    Chỉ còn {item.stock_quantity} sản phẩm
+                  </span>
+                ) : (
+                  <span className="text-green-600 font-semibold">
+                    Còn hàng ({item.stock_quantity})
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {!isOutOfStock && (
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  console.log("Quick add:", item.product_id);
+                }}
+                className="rounded-full bg-black p-2 text-white opacity-0 transition-all hover:bg-neutral-800 group-hover:opacity-100"
+                title="Thêm vào giỏ"
+              >
+                <ShoppingCart className="h-4 w-4" />
+              </button>
+            )}
+          </div>
         </div>
-      </div>
-    </article>
+      </Link>
+    </div>
   );
 }
