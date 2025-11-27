@@ -1,4 +1,4 @@
-// Header.tsx - Smart Category Detection
+// Header.tsx - Updated User Menu
 import { useMemo, useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Logout } from "../../api/auth";
@@ -13,6 +13,8 @@ import {
   Menu,
   X,
   Loader2,
+  ShoppingBag,
+  Lock,
 } from "lucide-react";
 
 type NavItem = {
@@ -66,7 +68,6 @@ const NAV_ITEMS: NavItem[] = [
   },
 ];
 
-// Mapping keywords to categories
 const CATEGORY_KEYWORDS: Record<number, string[]> = {
   1: [
     "áo thun", "ao thun","áo", "t-shirt", "tshirt", "thun", 
@@ -102,11 +103,9 @@ const CATEGORY_KEYWORDS: Record<number, string[]> = {
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-// Function to detect category from search query
 const detectCategoryFromQuery = (query: string): number | null => {
   const normalizedQuery = query.toLowerCase().trim();
   
-  // Check each category's keywords
   for (const [categoryId, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
     for (const keyword of keywords) {
       if (normalizedQuery.includes(keyword)) {
@@ -115,7 +114,7 @@ const detectCategoryFromQuery = (query: string): number | null => {
     }
   }
   
-  return null; // No category detected
+  return null;
 };
 
 export default function Header() {
@@ -146,7 +145,6 @@ export default function Header() {
 
   const username = storedUser?.username || storedUser?.name || null;
 
-  // Detect category and search products
   useEffect(() => {
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
@@ -159,7 +157,6 @@ export default function Header() {
       return;
     }
 
-    // Detect category from query
     const categoryId = detectCategoryFromQuery(query);
     setDetectedCategory(categoryId);
 
@@ -186,7 +183,6 @@ export default function Header() {
     };
   }, [query]);
 
-  // Click outside to close
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
@@ -215,18 +211,15 @@ export default function Header() {
     setMenuOpen(false);
   };
 
-  // Handle search with smart category detection
   const handleSearch = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const q = query.trim();
     
     if (!q) return;
 
-    // If category detected, go to category page
     if (detectedCategory) {
       navigate(`/san-pham/danh-muc/${detectedCategory}`);
     } else {
-      // Otherwise go to search page
       navigate(`/search?q=${encodeURIComponent(q)}`);
     }
     
@@ -236,12 +229,10 @@ export default function Header() {
     setDetectedCategory(null);
   };
 
-  // Handle clicking search icon (same as submit)
   const handleSearchClick = () => {
     handleSearch();
   };
 
-  // Handle "View all results" button
   const handleViewAllResults = () => {
     if (detectedCategory) {
       navigate(`/san-pham/danh-muc/${detectedCategory}`);
@@ -323,11 +314,10 @@ export default function Header() {
             {/* Search Results Dropdown */}
             {showResults && (
               <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-full max-w-[520px] lg:max-w-[480px] bg-white rounded-lg shadow-2xl border border-gray-200 max-h-[500px] overflow-y-auto z-50">
-                {/* Category Detection Banner */}
                 {detectedCategory && (
                   <div className="p-3 bg-blue-50 border-b border-blue-100">
                     <p className="text-sm text-blue-800">
-                      🎯 Đang tìm trong danh mục: <span className="font-semibold">{getCategoryName(detectedCategory)}</span>
+                      🔍 Đang tìm trong danh mục: <span className="font-semibold">{getCategoryName(detectedCategory)}</span>
                     </p>
                   </div>
                 )}
@@ -439,20 +429,79 @@ export default function Header() {
                 </button>
 
                 {isMenuOpen && (
-                  <div className="absolute right-0 mt-3 w-48 origin-top-right rounded-md bg-white p-1 text-black shadow-lg ring-1 ring-black ring-opacity-5 z-10">
-                    <Link
-                      to="/tai-khoan"
-                      onClick={() => setMenuOpen(false)}
-                      className="block w-full rounded-md px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-100"
-                    >
-                      Tài khoản của tôi
-                    </Link>
-                    <button
-                      onClick={handleLogout}
-                      className="block w-full rounded-md px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
-                    >
-                      Đăng xuất
-                    </button>
+                  <div className="absolute right-0 mt-3 w-64 origin-top-right rounded-lg bg-white text-black shadow-2xl ring-1 ring-black ring-opacity-5 z-10 overflow-hidden">
+                    {/* User Info Header */}
+                    <div className="bg-gradient-to-br from-blue-500 to-purple-600 p-4 text-white">
+                      <div className="flex items-center gap-3">
+                        <div className="grid h-12 w-12 place-content-center rounded-full bg-white/20 text-lg font-bold backdrop-blur-sm">
+                          {username?.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold truncate">{username}</p>
+                          <p className="text-xs text-white/80 truncate">{storedUser?.email}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Menu Items */}
+                    <div className="p-2">
+                      <Link
+                        to="/tai-khoan/ho-so"
+                        onClick={() => setMenuOpen(false)}
+                        className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-100 transition-colors"
+                      >
+                        <div className="grid h-8 w-8 place-content-center rounded-lg bg-blue-50">
+                          <User2 className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-semibold">Hồ sơ của tôi</p>
+                          <p className="text-xs text-neutral-500">Quản lý thông tin cá nhân</p>
+                        </div>
+                      </Link>
+
+                      <Link
+                        to="/tai-khoan/don-hang"
+                        onClick={() => setMenuOpen(false)}
+                        className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-100 transition-colors"
+                      >
+                        <div className="grid h-8 w-8 place-content-center rounded-lg bg-green-50">
+                          <ShoppingBag className="h-4 w-4 text-green-600" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-semibold">Đơn hàng của tôi</p>
+                          <p className="text-xs text-neutral-500">Xem lịch sử mua hàng</p>
+                        </div>
+                      </Link>
+
+                      <Link
+                        to="/tai-khoan/doi-mat-khau"
+                        onClick={() => setMenuOpen(false)}
+                        className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-100 transition-colors"
+                      >
+                        <div className="grid h-8 w-8 place-content-center rounded-lg bg-purple-50">
+                          <Lock className="h-4 w-4 text-purple-600" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-semibold">Đổi mật khẩu</p>
+                          <p className="text-xs text-neutral-500">Bảo mật tài khoản</p>
+                        </div>
+                      </Link>
+                    </div>
+
+                    {/* Divider & Logout */}
+                    <div className="border-t border-neutral-200 p-2">
+                      <button
+                        onClick={handleLogout}
+                        className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                      >
+                        <div className="grid h-8 w-8 place-content-center rounded-lg bg-red-50">
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                          </svg>
+                        </div>
+                        <span className="font-semibold">Đăng xuất</span>
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

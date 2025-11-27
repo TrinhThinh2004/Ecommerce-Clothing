@@ -19,7 +19,7 @@ import orderRoutes from "./routes/order";
 import paymentRoutes from "./routes/payment"
 import chatRoutes from "./routes/chat";
 import reviewRoutes from "./routes/review";
-
+import userRoutes from "./routes/user";
 dotenv.config();
 
 const app = express();
@@ -49,7 +49,7 @@ app.use("/api/payment", paymentRoutes);
 app.use("/api/v1/chat", chatRoutes);
 
 app.use("/api/v1/", reviewRoutes);
-
+app.use("/api/v1/users", userRoutes);
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 5000;
 

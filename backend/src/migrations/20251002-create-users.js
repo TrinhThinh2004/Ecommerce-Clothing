@@ -1,6 +1,3 @@
-"use strict";
-
-/** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
     await queryInterface.createTable("users", {
@@ -32,6 +29,18 @@ module.exports = {
         type: Sequelize.STRING(20),
         allowNull: true,
       },
+      address: {
+        type: Sequelize.TEXT,
+        allowNull: true,
+      },
+      date_of_birth: {
+        type: Sequelize.DATEONLY,
+        allowNull: true,
+      },
+      gender: {
+        type: Sequelize.ENUM("male", "female", "other"),
+        allowNull: true,
+      },
       role: {
         type: Sequelize.STRING(20),
         allowNull: false,
@@ -52,9 +61,15 @@ module.exports = {
     });
 
     // Thêm index cho các trường thường query
-    await queryInterface.addIndex("users", ["email"]);
-    await queryInterface.addIndex("users", ["username"]);
-    await queryInterface.addIndex("users", ["role"]);
+    await queryInterface.addIndex("users", ["email"], {
+      name: "idx_users_email",
+    });
+    await queryInterface.addIndex("users", ["username"], {
+      name: "idx_users_username",
+    });
+    await queryInterface.addIndex("users", ["role"], {
+      name: "idx_users_role",
+    });
   },
 
   async down(queryInterface, Sequelize) {
