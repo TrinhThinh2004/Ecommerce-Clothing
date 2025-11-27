@@ -1,7 +1,7 @@
 // src/pages/User/UserLayout.tsx
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { User, ShoppingBag, Lock, MapPin, Heart, Menu, X } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 type SideNavItem = {
   icon: React.ElementType;
@@ -42,20 +42,29 @@ export default function UserLayout() {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  // Auto close mobile menu khi đổi route (tránh lỗi UI)
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
+
   // Lấy thông tin user từ localStorage
   const storedUser = JSON.parse(localStorage.getItem("user") || "null");
   const username = storedUser?.username || "Người dùng";
   const email = storedUser?.email || "";
 
+  // Kiểm tra route có active hay không
+  const checkActive = (path: string): boolean => {
+    return location.pathname.startsWith(path);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-amber-50 to-amber-100">
       <div className="mx-auto max-w-7xl px-4 py-8">
+        
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-neutral-800">
-              Tài khoản của bạn
-            </h1>
+            <h1 className="text-2xl font-bold text-neutral-800">Tài khoản của bạn</h1>
             <p className="text-sm text-neutral-600 mt-1">
               Hi, <span className="font-semibold">{username}</span>
             </p>
@@ -66,29 +75,25 @@ export default function UserLayout() {
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="lg:hidden rounded-lg border border-neutral-300 bg-white p-2 hover:bg-neutral-50"
           >
-            {mobileMenuOpen ? (
-              <X className="h-6 w-6" />
-            ) : (
-              <Menu className="h-6 w-6" />
-            )}
+            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
 
-        {/* Grid Layout */}
+        {/* Layout Grid */}
         <div className="grid gap-6 lg:grid-cols-[280px,1fr]">
+          
           {/* Sidebar - Desktop */}
           <aside className="hidden lg:block">
             <div className="sticky top-24 space-y-2 rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
+              
               {/* User Info */}
               <div className="mb-4 border-b pb-4">
                 <div className="flex items-center gap-3">
-                  <div className="grid h-12 w-12 place-content-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-lg font-bold text-white">
+                  <div className="grid h-12 w-12 place-content-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-lg font-bold text-white shadow">
                     {username.charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-neutral-800 truncate">
-                      {username}
-                    </p>
+                    <p className="font-semibold text-neutral-800 truncate">{username}</p>
                     <p className="text-xs text-neutral-500 truncate">{email}</p>
                   </div>
                 </div>
@@ -98,7 +103,7 @@ export default function UserLayout() {
               <nav className="space-y-1">
                 {NAV_ITEMS.map((item) => {
                   const Icon = item.icon;
-                  const isActive = location.pathname === item.path;
+                  const isActive = checkActive(item.path);
 
                   return (
                     <Link
@@ -112,6 +117,7 @@ export default function UserLayout() {
                     >
                       <Icon className="h-5 w-5" />
                       <span className="flex-1">{item.label}</span>
+
                       {item.badge && (
                         <span className="rounded-full bg-red-500 px-2 py-0.5 text-xs font-semibold text-white">
                           {item.badge}
@@ -146,19 +152,16 @@ export default function UserLayout() {
                 </div>
 
                 <div className="p-4">
+                  
                   {/* User Info */}
                   <div className="mb-4 border-b pb-4">
                     <div className="flex items-center gap-3">
-                      <div className="grid h-12 w-12 place-content-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-lg font-bold text-white">
+                      <div className="grid h-12 w-12 place-content-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-lg font-bold text-white shadow">
                         {username.charAt(0).toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-neutral-800 truncate">
-                          {username}
-                        </p>
-                        <p className="text-xs text-neutral-500 truncate">
-                          {email}
-                        </p>
+                        <p className="font-semibold text-neutral-800 truncate">{username}</p>
+                        <p className="text-xs text-neutral-500 truncate">{email}</p>
                       </div>
                     </div>
                   </div>
@@ -167,7 +170,7 @@ export default function UserLayout() {
                   <nav className="space-y-1">
                     {NAV_ITEMS.map((item) => {
                       const Icon = item.icon;
-                      const isActive = location.pathname === item.path;
+                      const isActive = checkActive(item.path);
 
                       return (
                         <Link
@@ -182,6 +185,7 @@ export default function UserLayout() {
                         >
                           <Icon className="h-5 w-5" />
                           <span className="flex-1">{item.label}</span>
+
                           {item.badge && (
                             <span className="rounded-full bg-red-500 px-2 py-0.5 text-xs font-semibold text-white">
                               {item.badge}

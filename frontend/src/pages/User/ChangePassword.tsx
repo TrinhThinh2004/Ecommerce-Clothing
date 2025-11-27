@@ -23,27 +23,27 @@ export default function ChangePassword() {
 
     // Validation
     if (!formData.currentPassword) {
-      toast.error("⚠️ Vui lòng nhập mật khẩu hiện tại");
+      toast.error(" Vui lòng nhập mật khẩu hiện tại");
       return;
     }
 
     if (!formData.newPassword) {
-      toast.error("⚠️ Vui lòng nhập mật khẩu mới");
+      toast.error("Vui lòng nhập mật khẩu mới");
       return;
     }
 
     if (formData.newPassword.length < 6) {
-      toast.error("⚠️ Mật khẩu mới phải có ít nhất 6 ký tự");
+      toast.error(" Mật khẩu mới phải có ít nhất 6 ký tự");
       return;
     }
 
     if (formData.newPassword !== formData.confirmPassword) {
-      toast.error("⚠️ Mật khẩu xác nhận không khớp");
+      toast.error(" Mật khẩu xác nhận không khớp");
       return;
     }
 
     if (formData.currentPassword === formData.newPassword) {
-      toast.error("⚠️ Mật khẩu mới phải khác mật khẩu hiện tại");
+      toast.error(" Mật khẩu mới phải khác mật khẩu hiện tại");
       return;
     }
 
@@ -56,7 +56,7 @@ export default function ChangePassword() {
         newPassword: formData.newPassword,
       });
 
-      toast.success("✅ Đổi mật khẩu thành công!");
+      toast.success(" Đổi mật khẩu thành công!");
 
       // Reset form
       setFormData({
@@ -69,11 +69,11 @@ export default function ChangePassword() {
       console.error("Error changing password:", error);
 
       if (error.response?.status === 401) {
-        toast.error("❌ Mật khẩu hiện tại không đúng");
+        toast.error(" Mật khẩu hiện tại không đúng");
       } else {
         toast.error(
           error.response?.data?.message ||
-            "❌ Có lỗi xảy ra khi đổi mật khẩu"
+            " Có lỗi xảy ra khi đổi mật khẩu"
         );
       }
     } finally {

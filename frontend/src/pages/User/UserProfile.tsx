@@ -1,27 +1,26 @@
 // src/pages/User/UserProfile.tsx
 import { useState, useEffect } from "react";
-import { Camera, Save } from "lucide-react";
+import { Camera, Save, Loader2, MapPin } from "lucide-react";
 import { toast } from "react-toastify";
-import axiosInstance from "../../api/client";
+import { getUserProfile, updateUserProfile } from "../../api/user";
 
 type UserProfile = {
   username: string;
   email: string;
   phone_number: string;
-  first_name: string;
-  last_name: string;
+  address: string;
   date_of_birth: string;
   gender: "male" | "female" | "other" | "";
 };
 
 export default function UserProfile() {
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [profile, setProfile] = useState<UserProfile>({
     username: "",
     email: "",
     phone_number: "",
-    first_name: "",
-    last_name: "",
+    address: "",
     date_of_birth: "",
     gender: "",
   });
@@ -32,24 +31,37 @@ export default function UserProfile() {
 
   const loadProfile = async () => {
     try {
-      // Lấy thông tin user từ localStorage trước
-      const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+      setInitialLoading(true);
+      const data = await getUserProfile();
       
+      setProfile({
+        username: data.username || "",
+        email: data.email || "",
+        phone_number: data.phone_number || "",
+        address: data.address || "",
+        date_of_birth: data.date_of_birth || "",
+        gender: data.gender || "",
+      });
+
+      // Cập nhật localStorage
+      localStorage.setItem("user", JSON.stringify(data));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      console.error("Error loading profile:", error);
+      toast.error(" Không thể tải thông tin hồ sơ");
+      
+      // Fallback sang localStorage nếu API lỗi
+      const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
       setProfile({
         username: storedUser.username || "",
         email: storedUser.email || "",
         phone_number: storedUser.phone_number || "",
-        first_name: storedUser.first_name || "",
-        last_name: storedUser.last_name || "",
+        address: storedUser.address || "",
         date_of_birth: storedUser.date_of_birth || "",
         gender: storedUser.gender || "",
       });
-
-      // Gọi API để lấy thông tin mới nhất (nếu có endpoint)
-      // const res = await axiosInstance.get("/api/v1/users/profile");
-      // setProfile(res.data.data);
-    } catch (error) {
-      console.error("Error loading profile:", error);
+    } finally {
+      setInitialLoading(false);
     }
   };
 
@@ -58,30 +70,22 @@ export default function UserProfile() {
     setLoading(true);
 
     try {
-      // Gọi API cập nhật profile
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const res = await axiosInstance.put("/api/v1/users/profile", {
+      const updatedProfile = await updateUserProfile({
         phone_number: profile.phone_number,
-        first_name: profile.first_name,
-        last_name: profile.last_name,
+        address: profile.address,
         date_of_birth: profile.date_of_birth,
-        gender: profile.gender,
+        gender: profile.gender || undefined,
       });
 
       // Cập nhật localStorage
-      const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
-      const updatedUser = {
-        ...storedUser,
-        ...profile,
-      };
-      localStorage.setItem("user", JSON.stringify(updatedUser));
+      localStorage.setItem("user", JSON.stringify(updatedProfile));
 
-      toast.success("✅ Cập nhật hồ sơ thành công!");
+      toast.success(" Cập nhật hồ sơ thành công!");
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       console.error("Error updating profile:", error);
       toast.error(
-        error.response?.data?.message || "❌ Có lỗi xảy ra khi cập nhật hồ sơ"
+        error.response?.data?.message || " Có lỗi xảy ra khi cập nhật hồ sơ"
       );
     } finally {
       setLoading(false);
@@ -89,11 +93,20 @@ export default function UserProfile() {
   };
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
     setProfile((prev) => ({ ...prev, [name]: value }));
   };
+
+  if (initialLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="animate-spin w-8 h-8 text-neutral-600" />
+        <span className="ml-3 text-neutral-600">Đang tải thông tin...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -138,37 +151,6 @@ export default function UserProfile() {
               />
             </div>
 
-            {/* First Name & Last Name */}
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="grid gap-2">
-                <label className="text-sm font-semibold text-neutral-700">
-                  Họ và tên đệm
-                </label>
-                <input
-                  type="text"
-                  name="first_name"
-                  value={profile.first_name}
-                  onChange={handleChange}
-                  placeholder="Nguyễn Văn"
-                  className="h-11 rounded-lg border border-neutral-300 px-4 text-sm outline-none focus:border-black focus:ring-2 focus:ring-black/20"
-                />
-              </div>
-
-              <div className="grid gap-2">
-                <label className="text-sm font-semibold text-neutral-700">
-                  Tên
-                </label>
-                <input
-                  type="text"
-                  name="last_name"
-                  value={profile.last_name}
-                  onChange={handleChange}
-                  placeholder="A"
-                  className="h-11 rounded-lg border border-neutral-300 px-4 text-sm outline-none focus:border-black focus:ring-2 focus:ring-black/20"
-                />
-              </div>
-            </div>
-
             {/* Phone */}
             <div className="grid gap-2">
               <label className="text-sm font-semibold text-neutral-700">
@@ -182,6 +164,26 @@ export default function UserProfile() {
                 placeholder="0123456789"
                 className="h-11 rounded-lg border border-neutral-300 px-4 text-sm outline-none focus:border-black focus:ring-2 focus:ring-black/20"
               />
+            </div>
+
+            {/* Address */}
+            <div className="grid gap-2">
+              <label className="text-sm font-semibold text-neutral-700">
+                Địa chỉ
+              </label>
+              <div className="relative">
+                <div className="pointer-events-none absolute left-4 top-4 text-neutral-400">
+                  <MapPin className="h-5 w-5" />
+                </div>
+                <textarea
+                  name="address"
+                  value={profile.address}
+                  onChange={handleChange}
+                  placeholder="Nhập địa chỉ của bạn"
+                  rows={3}
+                  className="w-full rounded-lg border border-neutral-300 pl-12 pr-4 py-3 text-sm outline-none focus:border-black focus:ring-2 focus:ring-black/20 resize-none"
+                />
+              </div>
             </div>
 
             {/* Date of Birth */}
@@ -260,7 +262,7 @@ export default function UserProfile() {
 
             <div className="text-center">
               <p className="text-sm font-semibold text-neutral-800">
-                {profile.first_name} {profile.last_name || profile.username}
+                {profile.username}
               </p>
               <p className="text-xs text-neutral-500 mt-1">{profile.email}</p>
             </div>
