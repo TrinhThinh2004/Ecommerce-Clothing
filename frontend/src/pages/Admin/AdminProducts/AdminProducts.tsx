@@ -388,7 +388,7 @@ function ProductFormModal({ initial, onClose, onSubmit, }: {
       <div className="grid max-h-[70vh] gap-6 overflow-y-auto p-6 sm:grid-cols-4">
         <div className="sm:col-span-2">
           <div className="space-y-4">
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-explicit-any, @typescript-eslint/no-explicit-any
+          
             <FormInput label="Tên sản phẩm" value={form.name} onChange={(e:any) => handleChange("name", e.target.value)} icon={Package} required />
             <div>
               <label className="mb-1 block text-xs font-semibold text-neutral-600">Mô tả</label>
@@ -400,7 +400,7 @@ function ProductFormModal({ initial, onClose, onSubmit, }: {
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-explicit-any
+              
               <FormInput label="Giá bán (VND)" type="number" value={form.price} onChange={(e:any) => handleChange("price", e.target.valueAsNumber)} icon={DollarSign} required />
               <FormInput label="Tồn kho" type="number" value={form.stock_quantity} onChange={(e:any) => handleChange("stock_quantity", e.target.valueAsNumber)} icon={Archive} required />
             </div>

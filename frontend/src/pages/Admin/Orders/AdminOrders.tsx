@@ -8,6 +8,7 @@ import {
   Eye,
   Trash2,
   X,
+  AlertTriangle,
 } from "lucide-react";
 import { formatVnd } from "../../../utils/format";
 import AdminLayout from "../_Components/AdminLayout";
@@ -24,12 +25,12 @@ type OrderStatus = AdminOrder["status"];
 type PaymentMethod = AdminOrder["payment_method"];
 type DateRange = "7d" | "30d" | "all";
 
-const STATUSES: { value: OrderStatus; label: string }[] = [
-  { value: "pending", label: "Chờ xử lý" },
-  { value: "processing", label: "Đang xử lý" },
-  { value: "shipping", label: "Đang giao" },
-  { value: "completed", label: "Hoàn thành" },
-  { value: "cancelled", label: "Đã hủy" },
+const STATUSES: { value: OrderStatus; label: string; description: string }[] = [
+  { value: "pending", label: "Chờ xử lý", description: "Đơn hàng mới, chưa xác nhận" },
+  { value: "processing", label: "Đang xử lý", description: "Đã xác nhận, đang chuẩn bị hàng" },
+  { value: "shipping", label: "Đang giao", description: "Đã bàn giao cho shipper" },
+  { value: "completed", label: "Hoàn thành", description: "Đã giao hàng thành công" },
+  { value: "cancelled", label: "Đã hủy", description: "Đơn hàng bị hủy" },
 ];
 
 const METHODS: Record<PaymentMethod, string> = {
@@ -42,6 +43,15 @@ const PAYMENT_STATUS_LABELS: Record<AdminOrder["payment_status"], string> = {
   pending: "Chưa thanh toán",
   paid: "Đã thanh toán",
   failed: "Thanh toán thất bại",
+};
+
+// Định nghĩa bước tiếp theo hợp lệ cho mỗi trạng thái
+const NEXT_STATUS: Record<OrderStatus, OrderStatus[]> = {
+  pending: ["processing", "cancelled"],
+  processing: ["shipping", "cancelled"],
+  shipping: ["completed", "cancelled"],
+  completed: [], // Không thể chuyển sang trạng thái khác
+  cancelled: [], // Không thể chuyển sang trạng thái khác
 };
 
 function withinRange(iso: string, range: DateRange) {
@@ -69,6 +79,13 @@ export default function AdminOrders() {
   const [openId, setOpenId] = useState<number | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+
+  // confirmation modal
+  const [confirmModal, setConfirmModal] = useState<{
+    orderId: number;
+    currentStatus: OrderStatus;
+    nextStatus: OrderStatus;
+  } | null>(null);
 
   // Load orders
   const loadOrders = async () => {
@@ -136,14 +153,29 @@ export default function AdminOrders() {
     setPage(1);
   }, [q, status, range]);
 
-  async function updateStatus(id: number, next: OrderStatus) {
+  function handleStatusChangeRequest(orderId: number, currentStatus: OrderStatus, nextStatus: OrderStatus) {
+    // Hiển thị modal xác nhận
+    setConfirmModal({ orderId, currentStatus, nextStatus });
+  }
+
+  async function confirmStatusChange() {
+    if (!confirmModal) return;
+    
     try {
-      await apiUpdateOrderStatus(id, next);
+      await apiUpdateOrderStatus(confirmModal.orderId, confirmModal.nextStatus);
       toast.success("Đã cập nhật trạng thái đơn hàng");
+      setConfirmModal(null);
       await loadOrders();
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (err) {
-      toast.error("Không thể cập nhật trạng thái");
+      
+      // Reload drawer detail if open
+      if (openId === confirmModal.orderId) {
+        const updatedOrder = await fetchOrderDetail(confirmModal.orderId);
+        setSelectedOrder(updatedOrder);
+      }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Không thể cập nhật trạng thái");
+      setConfirmModal(null);
     }
   }
 
@@ -267,9 +299,10 @@ export default function AdminOrders() {
                   </Td>
                   <Td className="text-right">
                     <div className="flex items-center justify-end gap-1">
-                      <StatusSelect
-                        value={o.status}
-                        onChange={(s) => updateStatus(o.order_id, s)}
+                      <StatusSelectImproved
+                        currentStatus={o.status}
+                        orderId={o.order_id}
+                        onChangeRequest={handleStatusChangeRequest}
                       />
                       <button
                         className="rounded-md p-2 text-neutral-600 hover:bg-neutral-100"
@@ -328,37 +361,38 @@ export default function AdminOrders() {
         </div>
       </section>
 
+      {/* Confirmation Modal */}
+      {confirmModal && (
+        <ConfirmModal
+          orderId={confirmModal.orderId}
+          currentStatus={confirmModal.currentStatus}
+          nextStatus={confirmModal.nextStatus}
+          onConfirm={confirmStatusChange}
+          onCancel={() => setConfirmModal(null)}
+        />
+      )}
+
       {/* Drawer chi tiết */}
       <OrderDrawer
         order={selectedOrder}
         loading={loadingDetail}
         onClose={() => setOpenId(null)}
+        onStatusChangeRequest={handleStatusChangeRequest}
       />
     </AdminLayout>
   );
 }
 
-/* ================= Table Subcomponents ================= */
-function Th({
-  children,
-  className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
+/* ================= Components ================= */
+function Th({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
     <th className={`px-3 py-2 text-left text-xs font-semibold ${className}`}>
       {children}
     </th>
   );
 }
-function Td({
-  children,
-  className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
+
+function Td({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return <td className={`px-3 py-3 align-top ${className}`}>{children}</td>;
 }
 
@@ -372,9 +406,7 @@ function StatusBadge({ value }: { value: OrderStatus }) {
   };
   const label = STATUSES.find((s) => s.value === value)?.label ?? value;
   return (
-    <span
-      className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${map[value]}`}
-    >
+    <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${map[value]}`}>
       {label}
     </span>
   );
@@ -387,34 +419,132 @@ function PaymentStatusBadge({ value }: { value: AdminOrder["payment_status"] }) 
     failed: "bg-red-50 text-red-700",
   };
   return (
-    <span
-      className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${map[value]}`}
-    >
+    <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${map[value]}`}>
       {PAYMENT_STATUS_LABELS[value]}
     </span>
   );
 }
 
-function StatusSelect({
-  value,
-  onChange,
+function StatusSelectImproved({
+  currentStatus,
+  orderId,
+  onChangeRequest,
 }: {
-  value: OrderStatus;
-  onChange: (s: OrderStatus) => void;
+  currentStatus: OrderStatus;
+  orderId: number;
+  onChangeRequest: (orderId: number, current: OrderStatus, next: OrderStatus) => void;
 }) {
+  const allowedNextStatuses = NEXT_STATUS[currentStatus];
+
   return (
     <select
-      value={value}
-      onChange={(e) => onChange(e.target.value as OrderStatus)}
+      value={currentStatus}
+      onChange={(e) => {
+        const nextStatus = e.target.value as OrderStatus;
+        if (nextStatus !== currentStatus) {
+          onChangeRequest(orderId, currentStatus, nextStatus);
+        }
+      }}
       className="rounded-md border border-neutral-300 px-2 py-1 text-xs outline-none hover:border-neutral-400"
-      title="Đổi trạng thái"
+      title="Chuyển trạng thái"
+      disabled={allowedNextStatuses.length === 0}
     >
-      {STATUSES.map((s) => (
-        <option key={s.value} value={s.value}>
-          {s.label}
+      <option value={currentStatus}>
+        {STATUSES.find((s) => s.value === currentStatus)?.label}
+      </option>
+      {allowedNextStatuses.map((s) => (
+        <option key={s} value={s}>
+          → {STATUSES.find((st) => st.value === s)?.label}
         </option>
       ))}
     </select>
+  );
+}
+
+function ConfirmModal({
+  orderId,
+  currentStatus,
+  nextStatus,
+  onConfirm,
+  onCancel,
+}: {
+  orderId: number;
+  currentStatus: OrderStatus;
+  nextStatus: OrderStatus;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const current = STATUSES.find((s) => s.value === currentStatus);
+  const next = STATUSES.find((s) => s.value === nextStatus);
+
+  return (
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      onClick={onCancel}
+    >
+      <div 
+        className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start gap-3 mb-4">
+          <div className="rounded-full bg-amber-100 p-2">
+            <AlertTriangle className="h-6 w-6 text-amber-600" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-bold mb-1">Xác nhận chuyển trạng thái</h3>
+            <p className="text-sm text-neutral-600">
+              Đơn hàng #{orderId}
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-neutral-50 rounded-lg p-4 mb-4 space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-neutral-600">Trạng thái hiện tại:</span>
+            <StatusBadge value={currentStatus} />
+          </div>
+          <div className="flex items-center justify-center text-neutral-400">
+            <ChevronRight className="h-5 w-5" />
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-neutral-600">Trạng thái mới:</span>
+            <StatusBadge value={nextStatus} />
+          </div>
+        </div>
+
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+          <p className="text-sm text-blue-800">
+            <strong>{next?.label}:</strong> {next?.description}
+          </p>
+          {nextStatus === "completed" && (
+            <p className="text-xs text-blue-700 mt-2">
+              ⚠️ Lưu ý: Đơn COD sẽ tự động được đánh dấu đã thanh toán.
+            </p>
+          )}
+          {nextStatus === "cancelled" && (
+            <p className="text-xs text-red-700 mt-2">
+              ⚠️ Lưu ý: Đơn đã hủy không thể khôi phục.
+            </p>
+          )}
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onCancel}
+            className="flex-1 rounded-lg border border-neutral-300 px-4 py-2 text-sm font-semibold hover:bg-neutral-50"
+          >
+            Hủy bỏ
+          </button>
+          <button
+            onClick={onConfirm}
+            className="flex-1 rounded-lg bg-black px-4 py-2 text-sm font-semibold text-white hover:bg-neutral-800"
+          >
+            Xác nhận
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -423,10 +553,12 @@ function OrderDrawer({
   order,
   loading,
   onClose,
+  onStatusChangeRequest,
 }: {
   order: AdminOrder | null;
   loading: boolean;
   onClose: () => void;
+  onStatusChangeRequest: (orderId: number, current: OrderStatus, next: OrderStatus) => void;
 }) {
   const isOpen = order !== null || loading;
 
@@ -476,6 +608,16 @@ function OrderDrawer({
           </div>
         ) : order ? (
           <div className="space-y-4 overflow-y-auto px-4 py-4 h-[calc(100vh-80px)]">
+            {/* Status Control */}
+            <div className="rounded-lg border-2 border-blue-200 bg-blue-50 p-3">
+              <div className="text-xs font-semibold text-blue-900 mb-2">Quản lý trạng thái</div>
+              <StatusSelectImproved
+                currentStatus={order.status}
+                orderId={order.order_id}
+                onChangeRequest={onStatusChangeRequest}
+              />
+            </div>
+
             {/* Info */}
             <div className="rounded-lg border p-3">
               <div className="grid gap-2 text-sm">

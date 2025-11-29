@@ -7,6 +7,9 @@ export interface AdminCustomer {
   username: string;
   email: string;
   phone_number: string | null;
+  address: string | null;
+  date_of_birth: string | null;
+  gender: "male" | "female" | "other" | null;
   role: "admin" | "user";
   created_at: string;
   total_orders?: number;
@@ -90,7 +93,7 @@ export const updateCustomer = async (
     return true;
   } catch (err) {
     console.error("updateCustomer error:", err);
-    return false;
+    throw err;
   }
 };
 
@@ -104,11 +107,11 @@ export const deleteCustomer = async (userId: number): Promise<boolean> => {
     return true;
   } catch (err) {
     console.error("deleteCustomer error:", err);
-    return false;
+    throw err;
   }
 };
 
-/** Block/Unblock khách hàng (có thể implement bằng cách thêm trường is_active) */
+/** Block/Unblock khách hàng */
 export const toggleCustomerStatus = async (
   userId: number,
   active: boolean
@@ -123,7 +126,7 @@ export const toggleCustomerStatus = async (
     return true;
   } catch (err) {
     console.error("toggleCustomerStatus error:", err);
-    return false;
+    throw err;
   }
 };
 
@@ -172,7 +175,7 @@ export const updateOrderStatus = async (
     return true;
   } catch (err) {
     console.error("updateOrderStatus error:", err);
-    return false;
+    throw err;
   }
 };
 
@@ -186,6 +189,6 @@ export const deleteOrder = async (orderId: number): Promise<boolean> => {
     return true;
   } catch (err) {
     console.error("deleteOrder error:", err);
-    return false;
+    throw err;
   }
 };

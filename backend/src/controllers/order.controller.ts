@@ -3,10 +3,7 @@ import Order from "../models/Order";
 import OrderItem from "../models/OrderItem";
 import Product from "../models/Product";
 
-/**
- * Tạo mới đơn hàng (và các order item)
- * POST /api/v1/orders
- */
+
 export const createOrder = async (req: Request, res: Response) => {
   const t = await Order.sequelize?.transaction();
 
