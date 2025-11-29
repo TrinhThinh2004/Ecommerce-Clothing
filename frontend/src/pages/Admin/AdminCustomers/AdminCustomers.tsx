@@ -6,11 +6,12 @@ import {
   Search,
   Pencil,
   Trash2,
-  
-  
   Mail,
   Phone,
   Tags,
+  MapPin,
+  Calendar,
+  User,
 } from "lucide-react";
 import { formatVnd } from "../../../utils/format";
 import AdminLayout from "../_Components/AdminLayout";
@@ -18,13 +19,12 @@ import {
   fetchAllCustomers,
   updateCustomer,
   deleteCustomer,
-  toggleCustomerStatus,
   type AdminCustomer,
 } from "../../../api/admin";
 import { toast } from "react-toastify";
 
 const PAGE_SIZE = 10;
-const LOW_STOCK_THRESHOLD = 5; // Sắp hết khi <= 5
+
 export default function AdminCustomers() {
   const [items, setItems] = useState<AdminCustomer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -108,26 +108,9 @@ export default function AdminCustomers() {
       toast.success(`Đã xóa ${ids.length} khách hàng`);
       setChecked({});
       await loadCustomers();
-     
-    } catch (err) {
-      toast.error("Có lỗi khi xóa khách hàng");
-    }
-  }
-
-  async function toggleStatusSelected(active: boolean) {
-    const ids = Object.keys(checked)
-      .filter((k) => checked[Number(k)])
-      .map(Number);
-    if (!ids.length) return;
-
-    try {
-      await Promise.all(ids.map((id) => toggleCustomerStatus(id, active)));
-      toast.success(`Đã ${active ? "mở chặn" : "chặn"} ${ids.length} khách hàng`);
-      setChecked({});
-      await loadCustomers();
-     
-    } catch (err) {
-      toast.error("Có lỗi khi cập nhật trạng thái");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Có lỗi khi xóa khách hàng");
     }
   }
 
@@ -137,36 +120,24 @@ export default function AdminCustomers() {
       await deleteCustomer(id);
       toast.success("Đã xóa khách hàng");
       await loadCustomers();
-    } catch (err) {
-      toast.error("Không thể xóa khách hàng");
-    }
-  }
-
-  async function toggleActive(id: number) {
-    const customer = items.find((c) => c.user_id === id);
-    if (!customer) return;
-
-    try {
-      // Toggle based on current status (giả sử có trường is_active)
-      await toggleCustomerStatus(id, !customer.role);
-      toast.success("Đã cập nhật trạng thái");
-      await loadCustomers();
-    } catch (err) {
-      toast.error("Không thể cập nhật trạng thái");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Không thể xóa khách hàng");
     }
   }
 
   async function onSubmitForm(payload: Partial<AdminCustomer>) {
     try {
       if (payload.user_id) {
-        // Update
         await updateCustomer(payload.user_id, payload);
         toast.success("Đã cập nhật thông tin khách hàng");
       }
-      // Note: Không hỗ trợ tạo mới user từ admin panel
+      setShowForm(false);
+      setEditing(null);
       await loadCustomers();
-    } catch (err) {
-      toast.error("Không thể lưu thông tin khách hàng");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Không thể lưu thông tin khách hàng");
     }
   }
 
@@ -225,36 +196,24 @@ export default function AdminCustomers() {
             </div>
 
             {/* Bulk actions */}
-            <div className="flex flex-wrap items-center gap-2 lg:col-span-2">
-              <button
-                onClick={() => toggleStatusSelected(true)}
-                className="rounded-md border px-3 py-2 text-sm hover:bg-neutral-50"
-                title="Mở chặn các KH đã chọn"
-              >
-                Mở chặn
-              </button>
-              <button
-                onClick={() => toggleStatusSelected(false)}
-                className="rounded-md border px-3 py-2 text-sm hover:bg-neutral-50"
-                title="Chặn các KH đã chọn"
-              >
-                Chặn
-              </button>
-              <button
-                onClick={delSelected}
-                className="inline-flex items-center gap-1 rounded-md border px-3 py-2 text-sm text-red-600 hover:bg-red-50"
-                title="Xóa các KH đã chọn"
-              >
-                <Trash2 className="h-4 w-4" />
-                Xóa
-              </button>
-            </div>
+            {someCheckedOnPage && (
+              <div className="flex flex-wrap items-center gap-2 lg:col-span-2">
+                <button
+                  onClick={delSelected}
+                  className="inline-flex items-center gap-1 rounded-md border px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                  title="Xóa các KH đã chọn"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Xóa đã chọn
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Table */}
-          <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white">
+          <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
             <div className="overflow-x-auto">
-              <table className="min-w-[920px] w-full table-fixed">
+              <table className="min-w-[920px] w-full">
                 <thead className="bg-neutral-50 text-left text-sm font-semibold text-neutral-700">
                   <tr>
                     <th className="w-10 px-3 py-3">
@@ -269,18 +228,18 @@ export default function AdminCustomers() {
                       />
                     </th>
                     <th className="px-3 py-3">Khách hàng</th>
-                    <th className="w-[170px] px-3 py-3">Email</th>
-                    <th className="w-[130px] px-3 py-3">Điện thoại</th>
-                    <th className="w-[110px] px-3 py-3">Đơn hàng</th>
-                    <th className="w-[140px] px-3 py-3">Tổng chi</th>
-                    <th className="w-[120px] px-3 py-3">Vai trò</th>
-                    <th className="w-[140px] px-3 py-3">Thao tác</th>
+                    <th className="px-3 py-3">Thông tin liên hệ</th>
+                    <th className="px-3 py-3">Địa chỉ</th>
+                    <th className="w-28 px-3 py-3">Đơn hàng</th>
+                    <th className="w-32 px-3 py-3">Tổng chi</th>
+                    <th className="w-28 px-3 py-3">Vai trò</th>
+                    <th className="w-32 px-3 py-3">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y text-sm">
                   {paged.map((c) => (
                     <tr key={c.user_id} className="hover:bg-neutral-50/50">
-                      <td className="px-3 py-2">
+                      <td className="px-3 py-3">
                         <input
                           type="checkbox"
                           className="accent-black"
@@ -288,30 +247,57 @@ export default function AdminCustomers() {
                           onChange={(e) => toggleOne(c.user_id, e.target.checked)}
                         />
                       </td>
-                      <td className="px-3 py-2">
-                        <div className="font-semibold">{c.username}</div>
-                        <div className="mt-0.5 flex items-center gap-1 text-xs text-neutral-500">
-                          <Tags className="h-3.5 w-3.5" />
-                          <span>{new Date(c.created_at).toLocaleDateString("vi-VN")}</span>
+                      <td className="px-3 py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 grid place-content-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-sm font-bold text-white">
+                            {c.username.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="font-semibold">{c.username}</div>
+                            <div className="mt-0.5 flex items-center gap-1 text-xs text-neutral-500">
+                              <Calendar className="h-3 w-3" />
+                              {new Date(c.created_at).toLocaleDateString("vi-VN")}
+                            </div>
+                          </div>
                         </div>
                       </td>
-                      <td className="px-3 py-2 truncate">
-                        <div className="flex items-center gap-1">
-                          <Mail className="h-3.5 w-3.5 text-neutral-500" />
-                          <span className="truncate">{c.email}</span>
+                      <td className="px-3 py-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1.5">
+                            <Mail className="h-3.5 w-3.5 text-neutral-500" />
+                            <span className="text-xs">{c.email}</span>
+                          </div>
+                          {c.phone_number && (
+                            <div className="flex items-center gap-1.5">
+                              <Phone className="h-3.5 w-3.5 text-neutral-500" />
+                              <span className="text-xs">{c.phone_number}</span>
+                            </div>
+                          )}
+                          {c.gender && (
+                            <div className="flex items-center gap-1.5">
+                              <User className="h-3.5 w-3.5 text-neutral-500" />
+                              <span className="text-xs">
+                                {c.gender === "male" ? "Nam" : c.gender === "female" ? "Nữ" : "Khác"}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </td>
-                      <td className="px-3 py-2">
-                        <div className="flex items-center gap-1">
-                          <Phone className="h-3.5 w-3.5 text-neutral-500" />
-                          <span>{c.phone_number || "-"}</span>
-                        </div>
+                      <td className="px-3 py-3 max-w-xs">
+                        {c.address ? (
+                          <div className="flex items-start gap-1.5">
+                            <MapPin className="h-3.5 w-3.5 text-neutral-500 mt-0.5" />
+                            <span className="text-xs line-clamp-2">{c.address}</span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-neutral-400">-</span>
+                        )}
                       </td>
-                      <td className="px-3 py-2">{c.total_orders || 0}</td>
-                      <td className="px-3 py-2 font-semibold">
+                      <td className="px-3 py-3 text-center font-semibold">{c.total_orders || 0}</td>
+                      <td className="px-3 py-3 font-semibold text-green-600">
                         {formatVnd(c.total_spent || 0)}
                       </td>
-                      <td className="px-3 py-2">
+                      <td className="px-3 py-3">
                         {c.role === "admin" ? (
                           <span className="rounded-full bg-purple-50 px-2 py-1 text-xs font-semibold text-purple-700">
                             Admin
@@ -322,21 +308,21 @@ export default function AdminCustomers() {
                           </span>
                         )}
                       </td>
-                      <td className="px-3 py-2">
+                      <td className="px-3 py-3">
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => {
                               setEditing(c);
                               setShowForm(true);
                             }}
-                            className="rounded-md border px-2 py-1.5 text-xs hover:bg-neutral-50"
+                            className="rounded-md border border-neutral-300 px-2 py-1.5 text-xs hover:bg-neutral-50"
                             title="Sửa"
                           >
                             <Pencil className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => removeOne(c.user_id)}
-                            className="rounded-md border px-2 py-1.5 text-xs text-red-600 hover:bg-red-50"
+                            className="rounded-md border border-red-300 px-2 py-1.5 text-xs text-red-600 hover:bg-red-50"
                             title="Xóa"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -357,7 +343,7 @@ export default function AdminCustomers() {
               </table>
             </div>
 
-            {/* Footer: paging info */}
+            {/* Footer */}
             <div className="flex flex-wrap items-center justify-between gap-3 border-t px-3 py-3 text-sm">
               <div>
                 Hiển thị <b>{paged.length}</b> / <b>{filtered.length}</b> khách hàng
@@ -378,11 +364,11 @@ export default function AdminCustomers() {
         {showForm && (
           <CustomerFormModal
             initial={editing ?? undefined}
-            onClose={() => setShowForm(false)}
-            onSubmit={(payload) => {
-              onSubmitForm(payload);
+            onClose={() => {
               setShowForm(false);
+              setEditing(null);
             }}
+            onSubmit={(payload) => onSubmitForm(payload)}
           />
         )}
       </div>
@@ -390,7 +376,7 @@ export default function AdminCustomers() {
   );
 }
 
-/* ================= Small components ================= */
+/* ================= Components ================= */
 function PaginationSimple({
   page,
   pageCount,
@@ -411,29 +397,12 @@ function PaginationSimple({
   const itemCls = "rounded-md border px-3 py-1.5 text-sm hover:bg-neutral-50 disabled:opacity-40";
 
   return (
-    <nav className="flex items-center justify-center gap-2" aria-label="Pagination">
-      <button
-        type="button"
-        className={itemCls}
-        onClick={() => onChange(1)}
-        disabled={page === 1}
-      >
-        « Đầu
-      </button>
-      <button
-        type="button"
-        className={itemCls}
-        onClick={() => onChange(Math.max(1, page - 1))}
-        disabled={page === 1}
-      >
+    <nav className="flex items-center justify-center gap-2">
+      <button onClick={() => onChange(Math.max(1, page - 1))} disabled={page === 1} className={itemCls}>
         ‹ Trước
       </button>
-
-      {from > 1 && <span className="px-1 text-neutral-500">…</span>}
-
       {pages.map((p) => (
         <button
-          type="button"
           key={p}
           onClick={() => onChange(p)}
           className={
@@ -445,24 +414,8 @@ function PaginationSimple({
           {p}
         </button>
       ))}
-
-      {to < pageCount && <span className="px-1 text-neutral-500">…</span>}
-
-      <button
-        type="button"
-        className={itemCls}
-        onClick={() => onChange(Math.min(pageCount, page + 1))}
-        disabled={page === pageCount}
-      >
+      <button onClick={() => onChange(Math.min(pageCount, page + 1))} disabled={page === pageCount} className={itemCls}>
         Sau ›
-      </button>
-      <button
-        type="button"
-        className={itemCls}
-        onClick={() => onChange(pageCount)}
-        disabled={page === pageCount}
-      >
-        Cuối »
       </button>
     </nav>
   );
@@ -479,18 +432,15 @@ function CustomerFormModal({
 }) {
   const [form, setForm] = useState<Partial<AdminCustomer>>(() => {
     if (initial) {
-      return {
-        user_id: initial.user_id,
-        username: initial.username,
-        email: initial.email,
-        phone_number: initial.phone_number,
-        role: initial.role,
-      };
+      return { ...initial };
     }
     return {
       username: "",
       email: "",
       phone_number: "",
+      address: "",
+      date_of_birth: "",
+      gender: null,
       role: "user",
     };
   });
@@ -500,73 +450,140 @@ function CustomerFormModal({
   }
 
   function submit() {
-    if (!form.username?.trim()) return alert("Vui lòng nhập tên khách hàng");
-    if (!form.email?.trim()) return alert("Vui lòng nhập email");
+    if (!form.username?.trim()) {
+      toast.error("Vui lòng nhập tên khách hàng");
+      return;
+    }
+    if (!form.email?.trim()) {
+      toast.error("Vui lòng nhập email");
+      return;
+    }
     onSubmit(form);
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 p-0 sm:items-center sm:p-6">
-      <div className="w-full max-w-xl overflow-hidden rounded-t-2xl bg-white shadow-xl sm:rounded-2xl">
-        <div className="border-b px-4 py-3">
-          <h3 className="text-base font-extrabold">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      onClick={onClose}
+    >
+      <div 
+        className="w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="border-b px-6 py-4">
+          <h3 className="text-lg font-bold">
             {form.user_id ? "Cập nhật khách hàng" : "Thêm khách hàng"}
           </h3>
         </div>
 
-        <div className="space-y-3 p-4">
-          <div className="grid gap-3 sm:grid-cols-2">
+        <div className="max-h-[70vh] overflow-y-auto p-6 space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="mb-1 block text-xs font-semibold text-neutral-600">Tên đăng nhập</label>
+              <label className="mb-1 block text-xs font-semibold text-neutral-600">
+                Tên đăng nhập <span className="text-red-500">*</span>
+              </label>
               <input
                 value={form.username}
                 onChange={(e) => handleChange("username", e.target.value)}
                 className="h-10 w-full rounded-md border border-neutral-300 px-3 text-sm outline-none focus:border-black"
+                placeholder="username"
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-semibold text-neutral-600">Số điện thoại</label>
+              <label className="mb-1 block text-xs font-semibold text-neutral-600">
+                Email <span className="text-red-500">*</span>
+              </label>
               <input
+                type="email"
+                value={form.email}
+                onChange={(e) => handleChange("email", e.target.value)}
+                className="h-10 w-full rounded-md border border-neutral-300 px-3 text-sm outline-none focus:border-black"
+                placeholder="email@example.com"
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-neutral-600">
+                Số điện thoại
+              </label>
+              <input
+                type="tel"
                 value={form.phone_number || ""}
                 onChange={(e) => handleChange("phone_number", e.target.value)}
+                className="h-10 w-full rounded-md border border-neutral-300 px-3 text-sm outline-none focus:border-black"
+                placeholder="0123456789"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-neutral-600">
+                Ngày sinh
+              </label>
+              <input
+                type="date"
+                value={form.date_of_birth || ""}
+                onChange={(e) => handleChange("date_of_birth", e.target.value)}
                 className="h-10 w-full rounded-md border border-neutral-300 px-3 text-sm outline-none focus:border-black"
               />
             </div>
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-semibold text-neutral-600">Email</label>
-            <input
-              value={form.email}
-              onChange={(e) => handleChange("email", e.target.value)}
-              className="h-10 w-full rounded-md border border-neutral-300 px-3 text-sm outline-none focus:border-black"
-              placeholder="name@example.com"
+            <label className="mb-1 block text-xs font-semibold text-neutral-600">
+              Địa chỉ
+            </label>
+            <textarea
+              value={form.address || ""}
+              onChange={(e) => handleChange("address", e.target.value)}
+              className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-black resize-none"
+              placeholder="Nhập địa chỉ"
+              rows={3}
             />
           </div>
 
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-neutral-600">Vai trò</label>
-            <select
-              value={form.role}
-              onChange={(e) => handleChange("role", e.target.value as "admin" | "user")}
-              className="h-10 w-full rounded-md border border-neutral-300 px-3 text-sm outline-none focus:border-black"
-            >
-              <option value="user">Khách hàng</option>
-              <option value="admin">Admin</option>
-            </select>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-neutral-600">
+                Giới tính
+              </label>
+              <select
+                value={form.gender || ""}
+                onChange={(e) => handleChange("gender", e.target.value as AdminCustomer["gender"])}
+                className="h-10 w-full rounded-md border border-neutral-300 px-3 text-sm outline-none focus:border-black"
+              >
+                <option value="">Chọn giới tính</option>
+                <option value="male">Nam</option>
+                <option value="female">Nữ</option>
+                <option value="other">Khác</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-neutral-600">
+                Vai trò
+              </label>
+              <select
+                value={form.role}
+                onChange={(e) => handleChange("role", e.target.value as "admin" | "user")}
+                className="h-10 w-full rounded-md border border-neutral-300 px-3 text-sm outline-none focus:border-black"
+              >
+                <option value="user">Khách hàng</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-2 border-t px-4 py-3">
+        <div className="flex items-center justify-end gap-3 border-t px-6 py-4 bg-neutral-50">
           <button
             onClick={onClose}
-            className="rounded-md border px-3 py-2 text-sm hover:bg-neutral-50"
+            className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-semibold hover:bg-white"
           >
             Hủy
           </button>
           <button
             onClick={submit}
-            className="rounded-md bg-black px-3 py-2 text-sm font-semibold text-white hover:bg-black/90"
+            className="rounded-md bg-black px-4 py-2 text-sm font-semibold text-white hover:bg-neutral-800"
           >
             {form.user_id ? "Lưu thay đổi" : "Tạo mới"}
           </button>

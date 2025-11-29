@@ -1,5 +1,7 @@
-// src/pages/User/UserProfile.tsx
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import { useState, useEffect } from "react";
+
 import { Camera, Save, Loader2, MapPin } from "lucide-react";
 import { toast } from "react-toastify";
 import { getUserProfile, updateUserProfile } from "../../api/user";
@@ -10,7 +12,7 @@ type UserProfile = {
   phone_number: string;
   address: string;
   date_of_birth: string;
-  gender: "male" | "female" | "other" | "";
+  gender: "" | "male" | "female" | "other"; 
 };
 
 export default function UserProfile() {
@@ -33,7 +35,7 @@ export default function UserProfile() {
     try {
       setInitialLoading(true);
       const data = await getUserProfile();
-      
+
       setProfile({
         username: data.username || "",
         email: data.email || "",
@@ -43,15 +45,11 @@ export default function UserProfile() {
         gender: data.gender || "",
       });
 
-      // Cập nhật localStorage
       localStorage.setItem("user", JSON.stringify(data));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-      console.error("Error loading profile:", error);
-      toast.error(" Không thể tải thông tin hồ sơ");
-      
-      // Fallback sang localStorage nếu API lỗi
+    } catch (error) {
+      toast.error("Không thể tải thông tin hồ sơ");
       const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+
       setProfile({
         username: storedUser.username || "",
         email: storedUser.email || "",
@@ -67,6 +65,24 @@ export default function UserProfile() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    
+    if (
+      !profile.phone_number.trim() ||
+      !profile.address.trim() ||
+      !profile.date_of_birth.trim() ||
+      !profile.gender.trim()
+    ) {
+      toast.error("Vui lòng nhập đầy đủ tất cả các trường!");
+      return;
+    }
+
+    
+    if (!/^[0-9]{10}$/.test(profile.phone_number)) {
+      toast.error("Số điện thoại phải đúng 10 chữ số!");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -74,18 +90,16 @@ export default function UserProfile() {
         phone_number: profile.phone_number,
         address: profile.address,
         date_of_birth: profile.date_of_birth,
-        gender: profile.gender || undefined,
+        gender: profile.gender || undefined, 
       });
 
-      // Cập nhật localStorage
       localStorage.setItem("user", JSON.stringify(updatedProfile));
 
-      toast.success(" Cập nhật hồ sơ thành công!");
+      toast.success("Cập nhật hồ sơ thành công!");
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
-      console.error("Error updating profile:", error);
       toast.error(
-        error.response?.data?.message || " Có lỗi xảy ra khi cập nhật hồ sơ"
+        error.response?.data?.message || "Có lỗi xảy ra khi cập nhật hồ sơ"
       );
     } finally {
       setLoading(false);
@@ -120,9 +134,10 @@ export default function UserProfile() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid gap-6 md:grid-cols-[1fr,300px]">
-          {/* Left - Form fields */}
+          {/* Left */}
           <div className="space-y-5">
-            {/* Username (readonly) */}
+
+            {/* Username */}
             <div className="grid gap-2">
               <label className="text-sm font-semibold text-neutral-700">
                 Tên đăng nhập
@@ -131,14 +146,11 @@ export default function UserProfile() {
                 type="text"
                 value={profile.username}
                 disabled
-                className="h-11 rounded-lg border border-neutral-300 bg-neutral-100 px-4 text-sm outline-none cursor-not-allowed"
+                className="h-11 rounded-lg border border-neutral-300 bg-neutral-100 px-4 text-sm cursor-not-allowed"
               />
-              <p className="text-xs text-neutral-500">
-                Tên đăng nhập không thể thay đổi
-              </p>
             </div>
 
-            {/* Email (readonly) */}
+            {/* Email */}
             <div className="grid gap-2">
               <label className="text-sm font-semibold text-neutral-700">
                 Email
@@ -147,154 +159,131 @@ export default function UserProfile() {
                 type="email"
                 value={profile.email}
                 disabled
-                className="h-11 rounded-lg border border-neutral-300 bg-neutral-100 px-4 text-sm outline-none cursor-not-allowed"
+                className="h-11 rounded-lg border border-neutral-300 bg-neutral-100 px-4 text-sm cursor-not-allowed"
               />
             </div>
 
             {/* Phone */}
             <div className="grid gap-2">
-              <label className="text-sm font-semibold text-neutral-700">
-                Số điện thoại
-              </label>
+              <label className="text-sm font-semibold">Số điện thoại</label>
               <input
                 type="tel"
                 name="phone_number"
                 value={profile.phone_number}
-                onChange={handleChange}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (/^[0-9]{0,10}$/.test(v)) {
+                    setProfile((prev) => ({ ...prev, phone_number: v }));
+                  }
+                }}
                 placeholder="0123456789"
-                className="h-11 rounded-lg border border-neutral-300 px-4 text-sm outline-none focus:border-black focus:ring-2 focus:ring-black/20"
+                className="h-11 rounded-lg border border-neutral-300 px-4 text-sm outline-none"
               />
             </div>
 
             {/* Address */}
             <div className="grid gap-2">
-              <label className="text-sm font-semibold text-neutral-700">
-                Địa chỉ
-              </label>
-              <div className="relative">
-                <div className="pointer-events-none absolute left-4 top-4 text-neutral-400">
-                  <MapPin className="h-5 w-5" />
-                </div>
-                <textarea
-                  name="address"
-                  value={profile.address}
-                  onChange={handleChange}
-                  placeholder="Nhập địa chỉ của bạn"
-                  rows={3}
-                  className="w-full rounded-lg border border-neutral-300 pl-12 pr-4 py-3 text-sm outline-none focus:border-black focus:ring-2 focus:ring-black/20 resize-none"
-                />
-              </div>
+              <label className="text-sm font-semibold">Địa chỉ</label>
+              <textarea
+                name="address"
+                value={profile.address}
+                onChange={handleChange}
+                rows={3}
+                placeholder="Nhập địa chỉ"
+                className="w-full rounded-lg border border-neutral-300 px-4 py-3 text-sm"
+              />
             </div>
 
-            {/* Date of Birth */}
+            {/* DOB */}
             <div className="grid gap-2">
-              <label className="text-sm font-semibold text-neutral-700">
-                Ngày sinh
-              </label>
+              <label className="text-sm font-semibold">Ngày sinh</label>
               <input
                 type="date"
                 name="date_of_birth"
                 value={profile.date_of_birth}
                 onChange={handleChange}
-                className="h-11 rounded-lg border border-neutral-300 px-4 text-sm outline-none focus:border-black focus:ring-2 focus:ring-black/20"
+                className="h-11 rounded-lg border border-neutral-300 px-4 text-sm"
               />
             </div>
 
             {/* Gender */}
             <div className="grid gap-2">
-              <label className="text-sm font-semibold text-neutral-700">
-                Giới tính
-              </label>
-              <div className="flex items-center gap-6">
-                <label className="flex cursor-pointer items-center gap-2">
+              <label className="text-sm font-semibold">Giới tính</label>
+              <div className="flex gap-6">
+                <label className="flex items-center gap-2">
                   <input
                     type="radio"
                     name="gender"
                     value="male"
                     checked={profile.gender === "male"}
                     onChange={handleChange}
-                    className="h-4 w-4 accent-black"
+                    className="h-4 w-4"
                   />
-                  <span className="text-sm">Nam</span>
+                  Nam
                 </label>
 
-                <label className="flex cursor-pointer items-center gap-2">
+                <label className="flex items-center gap-2">
                   <input
                     type="radio"
                     name="gender"
                     value="female"
                     checked={profile.gender === "female"}
                     onChange={handleChange}
-                    className="h-4 w-4 accent-black"
+                    className="h-4 w-4"
                   />
-                  <span className="text-sm">Nữ</span>
+                  Nữ
                 </label>
 
-                <label className="flex cursor-pointer items-center gap-2">
+                <label className="flex items-center gap-2">
                   <input
                     type="radio"
                     name="gender"
                     value="other"
                     checked={profile.gender === "other"}
                     onChange={handleChange}
-                    className="h-4 w-4 accent-black"
+                    className="h-4 w-4"
                   />
-                  <span className="text-sm">Khác</span>
+                  Khác
                 </label>
               </div>
             </div>
           </div>
 
-          {/* Right - Avatar */}
-          <div className="flex flex-col items-center gap-4 rounded-lg border border-dashed border-neutral-300 bg-neutral-50 p-6">
+        
+          <div className="flex flex-col items-center gap-4 rounded-lg border border-dashed bg-neutral-50 p-6">
             <div className="relative">
               <div className="grid h-32 w-32 place-content-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-5xl font-bold text-white shadow-lg">
                 {profile.username.charAt(0).toUpperCase()}
               </div>
               <button
                 type="button"
-                className="absolute bottom-0 right-0 grid h-10 w-10 place-content-center rounded-full border-2 border-white bg-black text-white shadow-lg hover:bg-neutral-800"
-                title="Chọn ảnh"
+                className="absolute bottom-0 right-0 grid h-10 w-10 place-content-center rounded-full bg-black text-white border-2 border-white"
               >
                 <Camera className="h-5 w-5" />
               </button>
             </div>
 
             <div className="text-center">
-              <p className="text-sm font-semibold text-neutral-800">
-                {profile.username}
-              </p>
-              <p className="text-xs text-neutral-500 mt-1">{profile.email}</p>
+              <p className="text-sm font-semibold">{profile.username}</p>
+              <p className="text-xs text-neutral-500">{profile.email}</p>
             </div>
 
-            <button
-              type="button"
-              className="w-full rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold hover:bg-neutral-50"
-            >
-              Chọn Ảnh
-            </button>
-
-            <p className="text-center text-xs text-neutral-500">
-              Dung lượng tối đa 1MB
-              <br />
-              Định dạng: JPG, PNG
-            </p>
           </div>
         </div>
 
-        {/* Submit Button */}
+    
         <div className="flex justify-end gap-3 border-t pt-6">
           <button
             type="button"
             onClick={loadProfile}
-            className="rounded-lg border border-neutral-300 bg-white px-6 py-2.5 text-sm font-semibold hover:bg-neutral-50"
+            className="border border-neutral-300 px-6 py-2.5 rounded-lg"
           >
             Hủy
           </button>
           <button
             type="submit"
             disabled={loading}
-            className="inline-flex items-center gap-2 rounded-lg bg-black px-6 py-2.5 text-sm font-semibold text-white hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-2 bg-black text-white px-6 py-2.5 rounded-lg disabled:opacity-50"
           >
             <Save className="h-4 w-4" />
             {loading ? "Đang lưu..." : "Lưu thay đổi"}

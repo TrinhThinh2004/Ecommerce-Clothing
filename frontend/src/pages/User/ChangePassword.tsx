@@ -1,4 +1,4 @@
-// src/pages/User/ChangePassword.tsx
+
 import { useState } from "react";
 import { Eye, EyeOff, Lock, Save } from "lucide-react";
 import { toast } from "react-toastify";
@@ -91,17 +91,18 @@ export default function ChangePassword() {
   };
 
   return (
-    <div className="space-y-6">
+  <div className="flex justify-center">
+    <div className="space-y-6 w-full max-w-2xl">
       {/* Header */}
       <div className="border-b pb-4">
-        <h2 className="text-xl font-bold text-neutral-800">Đổi Mật Khẩu</h2>
+        <h2 className="text-xl font-bold text-neutral-800 ">Đổi Mật Khẩu</h2>
         <p className="text-sm text-neutral-600 mt-1">
           Để bảo mật tài khoản, vui lòng không chia sẻ mật khẩu cho người khác
         </p>
       </div>
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="max-w-xl space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6">
         {/* Current Password */}
         <div className="grid gap-2">
           <label className="text-sm font-semibold text-neutral-700">
@@ -165,7 +166,6 @@ export default function ChangePassword() {
             </button>
           </div>
 
-          {/* Password strength indicator */}
           {formData.newPassword && (
             <div className="space-y-1">
               <div className="flex items-center gap-2">
@@ -231,7 +231,6 @@ export default function ChangePassword() {
             </button>
           </div>
 
-          {/* Match indicator */}
           {formData.confirmPassword && (
             <p
               className={`text-xs font-semibold ${
@@ -247,7 +246,7 @@ export default function ChangePassword() {
           )}
         </div>
 
-        {/* Info box */}
+        {/* Info Box */}
         <div className="rounded-lg bg-blue-50 border border-blue-200 p-4">
           <h4 className="text-sm font-semibold text-blue-800 mb-2">
             💡 Gợi ý mật khẩu mạnh:
@@ -260,7 +259,7 @@ export default function ChangePassword() {
           </ul>
         </div>
 
-        {/* Submit Button */}
+        {/* Submit Buttons */}
         <div className="flex gap-3 pt-4">
           <button
             type="button"
@@ -275,6 +274,7 @@ export default function ChangePassword() {
           >
             Hủy
           </button>
+
           <button
             type="submit"
             disabled={loading}
@@ -286,5 +286,7 @@ export default function ChangePassword() {
         </div>
       </form>
     </div>
-  );
-}
+  </div>
+);
+// eslint-disable-next-line @typescript-eslint/no-unused-expressions
+``}

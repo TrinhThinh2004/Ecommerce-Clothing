@@ -11,8 +11,8 @@ export const PATHS = {
   SEARCH: "/search",
   STORE_LOCATOR: "/he-thong-cua-hang",
   FASHION_NEWS: "/tin-thoi-trang",
-  PAYMENT_RESULT: "/payment/result",
-  ORDER_HISTORY: "/lich-su-don-hang",
+  PAYMENT_RESULT: "/payment-result",
+  ORDER_HISTORY: "/order-history",
 
   // Policies
   ORDER_POLICY: "/huong-dan-dat-hang",

@@ -103,7 +103,8 @@ export default function AdminDashboard() {
     const todayOrders = ordersData.filter(
       (o) => new Date(o.created_at) >= todayStart
     );
-    const todayRevenue = todayOrders.reduce((sum, o) => sum + o.total_price, 0);
+   const todayRevenue = todayOrders.reduce((sum, o) => sum + Number(o.total_price), 0);
+
 
     // New customers (last 30 days)
     const newCustomers = customersData.filter(
@@ -119,8 +120,10 @@ export default function AdminDashboard() {
     ).length;
 
     // Average order value
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const totalRevenue = ordersData.reduce((sum, o) => sum + o.total_price, 0);
-    const avgOrderValue = ordersData.length > 0 ? totalRevenue / ordersData.length : 0;
+    const avgOrderValue =
+  todayOrders.length > 0 ? todayRevenue / todayOrders.length : 0;
 
     // Conversion rate (completed / total orders)
     const conversionRate =
@@ -236,12 +239,13 @@ export default function AdminDashboard() {
           trend={stats.todayOrders > 0 ? "up" : undefined}
         />
         <KpiCard
-          title="Doanh thu hôm nay"
-          value={formatVnd(stats.todayRevenue)}
-          sub={`TB: ${formatVnd(stats.avgOrderValue)}/đơn`}
-          icon={<BarChart3 className="h-5 w-5" />}
-          trend={stats.todayRevenue > 0 ? "up" : undefined}
-        />
+  title="Doanh thu hôm nay"
+  value={formatVnd(stats.todayRevenue)}
+  sub={`TB: ${formatVnd(stats.avgOrderValue)}/đơn`} 
+  icon={<BarChart3 className="h-5 w-5" />}
+  trend={stats.todayRevenue > 0 ? "up" : undefined}
+/>
+
         <KpiCard
           title="Khách hàng"
           value={stats.totalCustomers}
