@@ -1,6 +1,6 @@
 // src/pages/User/UserOrders.tsx
 import { useEffect, useState } from "react";
-import { fetchOrders, fetchOrderById } from "../../api/order";
+import { fetchOrders, fetchOrderById, updateOrderStatus } from "../../api/order";
 import { Order } from "../../types/order";
 import { formatVnd } from "../../utils/format";
 import { 
@@ -64,6 +64,27 @@ export default function UserOrders() {
       setSelectedOrder(detail);
     } catch (error) {
       console.error("Error fetching order detail:", error);
+    }
+  };
+
+  const [cancellingId, setCancellingId] = useState<number | null>(null);
+
+  const handleCancel = async (orderId: number) => {
+    const ok = window.confirm("Bạn có chắc muốn hủy đơn hàng này không?");
+    if (!ok) return;
+    try {
+      setCancellingId(orderId);
+      const success = await updateOrderStatus(orderId, "cancelled");
+      if (success) {
+        // reload orders
+        await loadOrders();
+      } else {
+        console.error("Hủy đơn thất bại");
+      }
+    } catch (err) {
+      console.error("Error cancelling order:", err);
+    } finally {
+      setCancellingId(null);
     }
   };
 
@@ -189,6 +210,22 @@ export default function UserOrders() {
                       <Eye className="h-4 w-4" />
                       Chi tiết
                     </button>
+                    {order.status === "pending" && (
+                      <button
+                        onClick={() => handleCancel(order.order_id)}
+                        disabled={cancellingId === order.order_id}
+                        className={`inline-flex items-center gap-2 rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-semibold hover:bg-red-50 text-red-600 ${
+                          cancellingId === order.order_id ? "opacity-60 cursor-not-allowed" : ""
+                        }`}
+                      >
+                        {cancellingId === order.order_id ? (
+                          <Loader2 className="animate-spin h-4 w-4" />
+                        ) : (
+                          <X className="h-4 w-4" />
+                        )}
+                        Hủy đơn
+                      </button>
+                    )}
                   </div>
                 </div>
 

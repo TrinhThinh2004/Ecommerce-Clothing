@@ -10,7 +10,6 @@ type Props = {
   zaloUrl?: string;
   label?: string;
   className?: string;
-  /** Cố định ở giữa cạnh phải hoặc góc phải dưới */
   placement?: "right-center" | "bottom-right";
   rightOffset?: number | string;
   bottomOffset?: number | string;
@@ -44,8 +43,6 @@ export default function FloatingContactRadix({
   hidden = false,
 }: Props) {
   if (hidden) return null;
-  // Tính style cố định cho trigger (nằm ngoài mọi container)
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const triggerStyle = useMemo<React.CSSProperties>(() => {
     const right =
       typeof rightOffset === "number" ? `${rightOffset}px` : rightOffset;
@@ -71,7 +68,6 @@ export default function FloatingContactRadix({
 
   return (
     <Popover.Root>
-      {/* Trigger: nút tròn đen, luôn fixed ngoài layout */}
       <Popover.Trigger asChild>
         <button
           style={triggerStyle}
@@ -88,10 +84,8 @@ export default function FloatingContactRadix({
         </button>
       </Popover.Trigger>
 
-      {/* Content: Panel liên hệ, render bằng Portal nên không bị giới hạn container */}
       <Popover.Portal>
         <Popover.Content
-          // canh về bên trái của trigger (vì trigger ở cạnh phải)
           side="left"
           align="center"
           sideOffset={12}
@@ -169,9 +163,6 @@ export default function FloatingContactRadix({
               </li>
             </ul>
           </div>
-
-          {/* mũi tên nhỏ nếu muốn */}
-          {/* <Popover.Arrow className="fill-white drop-shadow" /> */}
         </Popover.Content>
       </Popover.Portal>
     </Popover.Root>

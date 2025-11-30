@@ -74,7 +74,8 @@ export const updateOrderStatus = async (
       { status },
       { headers: { Authorization: `Bearer ${token}` } }
     );
-    return res.data.success ?? false;
+    if (typeof res.data.success === "boolean") return res.data.success;
+    return res.status >= 200 && res.status < 300;
   } catch (err) {
     console.error("updateOrderStatus error:", err);
     return false;

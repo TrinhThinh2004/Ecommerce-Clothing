@@ -1,4 +1,3 @@
-// Header.tsx - Updated User Menu
 import { useMemo, useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Logout } from "../../api/auth";
