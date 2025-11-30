@@ -1,12 +1,13 @@
 // src/pages/User/UserOrders.tsx
 import { useEffect, useState } from "react";
-import { fetchOrders, fetchOrderById } from "../../api/order";
+import { fetchOrders, fetchOrderById, updateOrderStatus } from "../../api/order";
 import { Order } from "../../types/order";
 import { formatVnd } from "../../utils/format";
 import { 
   Loader2, Package, Truck, CheckCircle, XCircle, 
   Clock, Eye, X 
 } from "lucide-react";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const STATUS_CONFIG = {
   pending: {
@@ -64,6 +65,27 @@ export default function UserOrders() {
       setSelectedOrder(detail);
     } catch (error) {
       console.error("Error fetching order detail:", error);
+    }
+  };
+
+  const [cancellingId, setCancellingId] = useState<number | null>(null);
+
+  const handleCancel = async (orderId: number) => {
+    const ok = window.confirm("Bạn có chắc muốn hủy đơn hàng này không?");
+    if (!ok) return;
+    try {
+      setCancellingId(orderId);
+      const success = await updateOrderStatus(orderId, "cancelled");
+      if (success) {
+        // reload orders
+        await loadOrders();
+      } else {
+        console.error("Hủy đơn thất bại");
+      }
+    } catch (err) {
+      console.error("Error cancelling order:", err);
+    } finally {
+      setCancellingId(null);
     }
   };
 
@@ -189,6 +211,22 @@ export default function UserOrders() {
                       <Eye className="h-4 w-4" />
                       Chi tiết
                     </button>
+                    {order.status === "pending" && (
+                      <button
+                        onClick={() => handleCancel(order.order_id)}
+                        disabled={cancellingId === order.order_id}
+                        className={`inline-flex items-center gap-2 rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-semibold hover:bg-red-50 text-red-600 ${
+                          cancellingId === order.order_id ? "opacity-60 cursor-not-allowed" : ""
+                        }`}
+                      >
+                        {cancellingId === order.order_id ? (
+                          <Loader2 className="animate-spin h-4 w-4" />
+                        ) : (
+                          <X className="h-4 w-4" />
+                        )}
+                        Hủy đơn
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -246,7 +284,7 @@ export default function UserOrders() {
             <div className="sticky top-0 flex items-center justify-between border-b bg-white px-6 py-4 z-10">
               <div>
                 <h3 className="text-lg font-bold text-neutral-800">
-                  Chi tiết đơn hàng #{selectedOrder.order_id}
+                  Chi tiết đơn hàng 
                 </h3>
                 <p className="text-xs text-neutral-500 mt-1">
                   {selectedOrder.created_at
@@ -324,7 +362,20 @@ export default function UserOrders() {
                       key={item.order_item_id}
                       className="flex items-center gap-4 rounded-lg border border-neutral-200 p-4"
                     >
-                      <div className="h-16 w-16 flex-shrink-0 rounded-lg bg-neutral-100" />
+                      <div className="h-16 w-16 flex-shrink-0 rounded-lg overflow-hidden bg-neutral-100">
+                        <img
+                          src={
+                            item.product?.image_url
+                              ? (item.product.image_url.startsWith("http")
+                                  ? item.product.image_url
+                                  : `${API_URL}${item.product.image_url}`)
+                              : "/no-image.svg"
+                          }
+                          alt={item.product?.name || "Product"}
+                          className="h-full w-full object-cover"
+                          onError={(e) => (e.currentTarget.src = "/no-image.svg")}
+                        />
+                      </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-neutral-800 truncate">
                           {item.product?.name}

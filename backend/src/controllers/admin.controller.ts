@@ -276,7 +276,7 @@ export const getAllOrders = async (req: Request, res: Response) => {
             {
               model: Product,
               as: "product",
-              attributes: ["product_id", "name"],
+                 attributes: ["product_id", "name", "image_url"],
             },
           ],
         },
@@ -316,7 +316,7 @@ export const getOrderDetail = async (req: Request, res: Response) => {
             {
               model: Product,
               as: "product",
-              attributes: ["product_id", "name"],
+              attributes: ["product_id", "name", "image_url"],
             },
           ],
         },

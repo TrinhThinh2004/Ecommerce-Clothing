@@ -130,13 +130,24 @@ export const getAllOrders = async (req: Request, res: Response) => {
   try {
     let where: any = {};
 
-    if (req.query.user_id) {
-      const userId = Number(req.query.user_id);
-      if (!isNaN(userId)) {
-        where.user_id = userId;
-      } else {
-        return res.status(400).json({ message: "user_id không hợp lệ" });
+
+    const requesterId = req.user?.user_id;
+    const requesterRole = req.user?.role;
+
+    if (requesterRole === "admin") {
+      if (req.query.user_id) {
+        const userId = Number(req.query.user_id);
+        if (!isNaN(userId)) {
+          where.user_id = userId;
+        } else {
+          return res.status(400).json({ message: "user_id không hợp lệ" });
+        }
       }
+    } else {
+      if (!requesterId) {
+        return res.status(401).json({ message: "Không tìm thấy thông tin người dùng" });
+      }
+      where.user_id = requesterId;
     }
 
     const orders = await Order.findAll({

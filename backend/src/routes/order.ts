@@ -12,7 +12,7 @@ import { authenticateToken } from "../middleware/auth.middleware";
 const router = express.Router();
 
 router.post("/", authenticateToken, createOrder);
-router.get("/", getAllOrders);
+router.get("/", authenticateToken, getAllOrders);
 
 router.get("/:id", getOrderById);
 router.patch("/:id/status", updateOrderStatus);
