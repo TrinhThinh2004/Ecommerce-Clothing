@@ -10,6 +10,7 @@ import {
   X,
   AlertTriangle,
 } from "lucide-react";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 import { formatVnd } from "../../../utils/format";
 import AdminLayout from "../_Components/AdminLayout";
 import {
@@ -659,7 +660,13 @@ function OrderDrawer({
                   <li key={it.order_item_id} className="flex items-center gap-3 p-3">
                     <div className="h-16 w-16 overflow-hidden rounded border">
                       <img
-                        src={it.product?.image || "/no-image.svg"}
+                        src={
+                          it.product?.image
+                            ? (it.product.image.startsWith("http")
+                                ? it.product.image
+                                : `${API_URL}${it.product.image}`)
+                            : "/no-image.svg"
+                        }
                         alt={it.product?.name || "Product"}
                         className="h-full w-full object-cover"
                         onError={(e) => {

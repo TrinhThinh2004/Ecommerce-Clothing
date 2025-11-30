@@ -7,6 +7,7 @@ import {
   Loader2, Package, Truck, CheckCircle, XCircle, 
   Clock, Eye, X 
 } from "lucide-react";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const STATUS_CONFIG = {
   pending: {
@@ -283,7 +284,7 @@ export default function UserOrders() {
             <div className="sticky top-0 flex items-center justify-between border-b bg-white px-6 py-4 z-10">
               <div>
                 <h3 className="text-lg font-bold text-neutral-800">
-                  Chi tiết đơn hàng #{selectedOrder.order_id}
+                  Chi tiết đơn hàng 
                 </h3>
                 <p className="text-xs text-neutral-500 mt-1">
                   {selectedOrder.created_at
@@ -361,7 +362,20 @@ export default function UserOrders() {
                       key={item.order_item_id}
                       className="flex items-center gap-4 rounded-lg border border-neutral-200 p-4"
                     >
-                      <div className="h-16 w-16 flex-shrink-0 rounded-lg bg-neutral-100" />
+                      <div className="h-16 w-16 flex-shrink-0 rounded-lg overflow-hidden bg-neutral-100">
+                        <img
+                          src={
+                            item.product?.image_url
+                              ? (item.product.image_url.startsWith("http")
+                                  ? item.product.image_url
+                                  : `${API_URL}${item.product.image_url}`)
+                              : "/no-image.svg"
+                          }
+                          alt={item.product?.name || "Product"}
+                          className="h-full w-full object-cover"
+                          onError={(e) => (e.currentTarget.src = "/no-image.svg")}
+                        />
+                      </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-neutral-800 truncate">
                           {item.product?.name}
