@@ -17,6 +17,8 @@ export default function AdminReviews() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterStatus>("all");
   const [selectedReview, setSelectedReview] = useState<Review | null>(null);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 10;
 
   useEffect(() => {
     loadReviews();
@@ -25,6 +27,10 @@ export default function AdminReviews() {
   useEffect(() => {
     applyFilter();
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter, reviews]);
+
+  useEffect(() => {
+    setPage(1);
   }, [filter, reviews]);
 
   const loadReviews = async () => {
@@ -117,6 +123,12 @@ export default function AdminReviews() {
     approved: reviews.filter((r) => r.status === "approved").length,
     rejected: reviews.filter((r) => r.status === "rejected").length,
   };
+
+  const pageCount = Math.max(1, Math.ceil(filteredReviews.length / PAGE_SIZE));
+  const pagedReviews = (() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filteredReviews.slice(start, start + PAGE_SIZE);
+  })();
 
   if (loading) {
     return (
@@ -226,7 +238,7 @@ export default function AdminReviews() {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {filteredReviews.map((review) => (
+                {pagedReviews.map((review) => (
                   <tr key={review.review_id} className="hover:bg-neutral-50">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
@@ -247,9 +259,7 @@ export default function AdminReviews() {
                           <p className="text-sm font-medium truncate max-w-[200px]">
                             {review.product?.name}
                           </p>
-                          <p className="text-xs text-neutral-500">
-                            ID: {review.product_id}
-                          </p>
+                          <p className="text-xs text-neutral-500">ID: {review.product_id}</p>
                         </div>
                       </div>
                     </td>
@@ -318,6 +328,14 @@ export default function AdminReviews() {
           </div>
         )}
       </div>
+
+      {/* Pagination */}
+      {filteredReviews.length > PAGE_SIZE && (
+        <div className="flex items-center justify-between gap-4 mt-4">
+          <div className="text-xs text-neutral-600">Hiển thị <b>{Math.min(PAGE_SIZE, filteredReviews.length - (page - 1) * PAGE_SIZE)}</b> trong tổng số <b>{filteredReviews.length}</b> đánh giá</div>
+          <PaginationSimple page={page} pageCount={Math.max(1, Math.ceil(filteredReviews.length / PAGE_SIZE))} onChange={(p) => { window.scrollTo({ top: 0, behavior: "smooth" }); setPage(p); }} />
+        </div>
+      )}
 
       {/* Review Detail Modal */}
       {selectedReview && (
@@ -498,5 +516,29 @@ function StarRatingDisplay({ rating }: { rating: number }) {
         />
       ))}
     </div>
+  );
+}
+
+function PaginationSimple({ page, pageCount, onChange }: { page: number, pageCount: number, onChange: (p: number) => void; }) {
+  if (pageCount <= 1) return null;
+  const windowSize = 5;
+  const half = Math.floor(windowSize / 2);
+  let from = Math.max(1, page - half);
+  let to = Math.min(pageCount, from + windowSize - 1);
+  if (to - from + 1 < windowSize) { from = Math.max(1, to - windowSize + 1); }
+  const pages = Array.from({ length: to - from + 1 }, (_, i) => from + i);
+  const itemCls = "h-8 w-8 grid place-content-center rounded-lg border text-xs transition-colors disabled:opacity-50";
+  return (
+    <nav className="flex items-center gap-2" aria-label="Pagination">
+      <button type="button" className={itemCls} onClick={() => onChange(1)} disabled={page === 1}>«</button>
+      <button type="button" className={itemCls} onClick={() => onChange(page - 1)} disabled={page === 1}>‹</button>
+      {from > 1 && <span className="px-1 text-neutral-500">…</span>}
+      {pages.map((p) => (
+        <button type="button" key={p} onClick={() => onChange(p)} className={p === page ? `${itemCls} border-blue-600 bg-blue-600 text-white` : `${itemCls} hover:bg-neutral-100`}>{p}</button>
+      ))}
+      {to < pageCount && <span className="px-1 text-neutral-500">…</span>}
+      <button type="button" className={itemCls} onClick={() => onChange(page + 1)} disabled={page === pageCount}>›</button>
+      <button type="button" className={itemCls} onClick={() => onChange(pageCount)} disabled={page === pageCount}>»</button>
+    </nav>
   );
 }

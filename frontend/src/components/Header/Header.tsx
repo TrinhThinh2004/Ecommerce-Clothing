@@ -571,7 +571,7 @@ export default function Header() {
                   {item.badge}
                 </Link>
                 {item.children && (
-                  <div className="invisible absolute mt-1 w-56 rounded-md border border-neutral-200 bg-white p-2 opacity-0 shadow-lg transition group-hover:visible group-hover:opacity-100 z-10">
+                  <div className="absolute top-full w-56 rounded-md border border-neutral-200 bg-white p-2 shadow-lg transition opacity-0  pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto z-50">
                     <ul className="flex flex-col">
                       {item.children.map((c) => (
                         <li key={c.label}>
