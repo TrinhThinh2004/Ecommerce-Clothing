@@ -14,7 +14,7 @@ const STORES: Store[] = [
     hours: "8:30 - 22:00",
     open: true,
     image:
-      "https://images.unsplash.com/photo-1567443024551-f3e3cc2a3d99?q=80&w=1200&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1534452203293-494d7ddbf7e0?q=80&w=1200&auto=format&fit=crop",
     isNew: true,
   },
   {
@@ -27,7 +27,7 @@ const STORES: Store[] = [
     hours: "8:30 - 22:00",
     open: true,
     image:
-      "https://images.unsplash.com/photo-1534452203293-494d7ddbf7e0?q=80&w=1200&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1542831371-29b0f74f9713?q=80&w=1200&auto=format&fit=crop",
   },
   {
     id: "dl-buon-ma-thuot",
@@ -39,7 +39,7 @@ const STORES: Store[] = [
     hours: "8:30 - 22:00",
     open: true,
     image:
-      "https://images.unsplash.com/photo-1597806999038-0a7d38e7ca8d?q=80&w=1200&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1534452203293-494d7ddbf7e0?q=80&w=1200&auto=format&fit=crop",
   },
   // thêm vài store mẫu nữa cho có phân trang
   {
@@ -52,7 +52,7 @@ const STORES: Store[] = [
     hours: "8:30 - 22:00",
     open: true,
     image:
-      "https://images.unsplash.com/photo-1515169067865-5387ec356754?q=80&w=1200&auto=format&fit=crop",
+     "https://images.unsplash.com/photo-1542831371-29b0f74f9713?q=80&w=1200&auto=format&fit=crop",
   },
   {
     id: "hn-pho-le-dai-hanh",
@@ -64,7 +64,7 @@ const STORES: Store[] = [
     hours: "8:30 - 22:00",
     open: false,
     image:
-      "https://images.unsplash.com/photo-1552858725-8813d783fd2e?q=80&w=1200&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1534452203293-494d7ddbf7e0?q=80&w=1200&auto=format&fit=crop",
   },
   {
     id: "ct-ninh-kieu",
