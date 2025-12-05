@@ -53,7 +53,7 @@ export interface AdminOrderItem {
   product?: {
     product_id: number;
     name: string;
-    image?: string;
+    image_url?: string;
     sku?: string;
   };
 }

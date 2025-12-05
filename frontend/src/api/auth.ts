@@ -50,3 +50,27 @@ export const Logout = async () => {
     localStorage.removeItem('user');
   }
 };
+
+export const forgotPassword = async (email: string) => {
+  try {
+    const response = await axiosInstance.post('/api/v1/auth/forgot-password', { email });
+    return response.data;
+  } catch (e) {
+    console.error('forgotPassword failed:', e);
+    throw e;
+  }
+};
+
+export const resetPassword = async (email: string, token: string, password: string) => {
+  try {
+    const response = await axiosInstance.post('/api/v1/auth/reset-password', {
+      email,
+      token,
+      password,
+    });
+    return response.data;
+  } catch (e) {
+    console.error('resetPassword failed:', e);
+    throw e;
+  }
+};

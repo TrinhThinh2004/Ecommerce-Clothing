@@ -44,16 +44,16 @@ export default function PolygonsRegister() {
         <section className="w-[min(92svw,360px)] md:w-[min(70svw,420px)]">
           <div className="rounded-2xl border border-cyan-500/30 bg-black/40 p-5 md:p-6 backdrop-blur-md shadow-[0_0_28px_rgba(0,255,255,0.22)]">
             <h1 className="mb-1 text-center text-[clamp(1.1rem,3.4vw,1.4rem)] font-semibold text-white/90">
-              Create Account
+              Tạo Tài Khoản
             </h1>
             <p className="mb-4 text-center text-[clamp(.8rem,2.4vw,.9rem)] text-cyan-100/70">
-              Join the squad 🚀
+              Chào mừng đến gia đình 🚀
             </p>
 
             <form onSubmit={handleSubmit}>
               {/* Username */}
               <label className="mb-1 block text-[10px] uppercase tracking-widest text-cyan-100/70">
-                Username
+                Tên đăng nhập
               </label>
               <div className="relative mb-3.5">
                 <input
@@ -93,7 +93,7 @@ export default function PolygonsRegister() {
 
               {/* Phone number */}
               <label className="mb-1 block text-[10px] uppercase tracking-widest text-cyan-100/70">
-                Phone number
+                Số điện thoại
               </label>
               <div className="relative mb-3.5">
                 <input
@@ -116,7 +116,7 @@ export default function PolygonsRegister() {
 
               {/* Password */}
               <label className="mb-1 block text-[10px] uppercase tracking-widest text-cyan-100/70">
-                Password
+                Mật khẩu
               </label>
               <div className="relative mb-3.5">
                 <input
@@ -137,7 +137,7 @@ export default function PolygonsRegister() {
 
               {/* Confirm Password */}
               <label className="mb-1 block text-[10px] uppercase tracking-widest text-cyan-100/70">
-                Confirm password
+                Xác nhận mật khẩu
               </label>
               <div className="relative mb-4">
                 <input
@@ -163,28 +163,28 @@ export default function PolygonsRegister() {
                   required
                 />
                 <span className="text-cyan-100/80">
-                  I agree to the {" "}
+                  Tôi đồng ý với {" "}
                   <a className="text-cyan-300 hover:underline" href="/terms">
-                    Store Terms
+                    Điều khoản Dịch vụ
                   </a>{" "}
-                  and {" "}
+                  và {" "}
                   <a className="text-cyan-300 hover:underline" href="/privacy">
-                    Privacy Policy
+                    Chính sách Bảo mật
                   </a>
                   .
                 </span>
               </label>
 
               <button type="submit" disabled={loading} className="group relative w-full overflow-hidden rounded-xl border border-cyan-400/50 bg-cyan-400/10 px-5 py-2.5 text-[clamp(.9rem,2.6vw,.95rem)] font-medium tracking-wide text-cyan-50 shadow-[0_0_16px_rgba(0,255,255,0.22)] transition-colors hover:bg-cyan-400/20 disabled:opacity-60">
-                <span className="relative z-10">{loading ? "CREATING..." : "CREATE ACCOUNT"}</span>
+                <span className="relative z-10">{loading ? "ĐANG TẠO..." : "TẠO TÀI KHOẢN"}</span>
                 <span className="pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 -skew-x-12 bg-white/20 blur-sm transition-transform duration-500 group-hover:translate-x-[250%]" />
               </button>
             </form>
 
             <p className="mt-4 text-center text-[clamp(.82rem,2.4vw,.9rem)] text-cyan-100/70">
-              Already have an account?{" "}
+              Đã có tài khoản?{" "}
               <a className="text-cyan-300 hover:underline" href="/dang-nhap">
-                Sign in
+                Đăng nhập
               </a>
             </p>
           </div>

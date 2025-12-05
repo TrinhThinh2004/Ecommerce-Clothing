@@ -661,10 +661,10 @@ function OrderDrawer({
                     <div className="h-16 w-16 overflow-hidden rounded border">
                       <img
                         src={
-                          it.product?.image
-                            ? (it.product.image.startsWith("http")
-                                ? it.product.image
-                                : `${API_URL}${it.product.image}`)
+                          it.product?.image_url
+                            ? (it.product.image_url.startsWith("http")
+                                ? it.product.image_url
+                                : `${API_URL}${it.product.image_url}`)
                             : "/no-image.svg"
                         }
                         alt={it.product?.name || "Product"}

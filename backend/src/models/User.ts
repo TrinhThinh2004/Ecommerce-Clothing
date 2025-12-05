@@ -8,6 +8,8 @@ export interface UserAttributes {
   email: string;
   password_hash: string;
   refresh_token?: string | null;
+  password_reset_token?: string | null;
+  password_reset_expires?: Date | null;
   phone_number?: string | null;
   address?: string | null;
   date_of_birth?: string | null;
@@ -38,6 +40,8 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
   public email!: string;
   public password_hash!: string;
   public refresh_token!: string | null;
+  public password_reset_token!: string | null;
+  public password_reset_expires!: Date | null;
   public phone_number!: string | null;
   public address!: string | null;
   public date_of_birth!: string | null;
@@ -72,7 +76,7 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
   // Convert to JSON (loại bỏ sensitive data)
   public toSafeJSON(): Omit<UserAttributes, 'password_hash' | 'refresh_token'> {
     const values = { ...this.get() } as UserAttributes;
-    const { password_hash, refresh_token, ...safeValues } = values;
+    const { password_hash, refresh_token, password_reset_token, password_reset_expires, ...safeValues } = values;
     return safeValues;
   }
 
@@ -162,6 +166,16 @@ User.init(
       type: DataTypes.STRING(255),
       allowNull: true,
       comment: 'JWT refresh token',
+    },
+    password_reset_token: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+      comment: 'One-time password reset token (dev).',
+    },
+    password_reset_expires: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      comment: 'Expiry datetime for password reset token',
     },
     phone_number: {
       type: DataTypes.STRING(20),

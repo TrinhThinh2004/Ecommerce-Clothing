@@ -9,6 +9,8 @@ const CategoryPage = lazy(() => import("../pages/Category/CategoryPage"));
 const ProductDetail = lazy(() => import("../pages/ProductDetail/ProductDetail"));
 const Login = lazy(() => import("../pages/auth/Login"));
 const Register = lazy(() => import("../pages/auth/Register"));
+const ForgotPassword = lazy(() => import("../pages/auth/ForgotPassword"));
+const ResetPassword = lazy(() => import("../pages/auth/ResetPassword"));
 const StoreLocator = lazy(() => import("../pages/Stores/StoreLocator"));
 const Cart = lazy(() => import("../pages/Cart/Cart"));
 const Search = lazy(() => import("../pages/Search/Search"));
@@ -123,6 +125,16 @@ export const ROUTES: RouteItem[] = [
   { 
     path: PATHS.REGISTER, 
     element: Register, 
+    layout: { type: "none" } 
+  },
+  { 
+    path: "/forgot-password", 
+    element: ForgotPassword, 
+    layout: { type: "none" } 
+  },
+  { 
+    path: "/reset-password", 
+    element: ResetPassword, 
     layout: { type: "none" } 
   },
 

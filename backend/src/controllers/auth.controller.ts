@@ -3,6 +3,8 @@ import bcrypt from 'bcrypt';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import User from '../models/User';
 import { JWTPayload } from '../middleware/auth.middleware';
+import crypto from 'crypto';
+import sendMail from '../utils/mailer';
 
 const createJWTPayload = (user: User): JWTPayload => ({
   user_id: user.user_id,
@@ -278,6 +280,73 @@ export const updateProfile = async (req: Request, res: Response) => {
         role: user.role,
       },
     });
+  } catch (error: any) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+// POST /auth/forgot-password
+export const forgotPassword = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: 'Vui lòng cung cấp email' });
+
+    const user = await User.findOne({ where: { email } });
+
+    // Always return generic response to avoid account enumeration
+    if (!user) {
+      return res.json({ message: 'Nếu tài khoản tồn tại, bạn sẽ nhận được email hướng dẫn đặt lại mật khẩu' });
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    // @ts-ignore
+    await user.update({ password_reset_token: token, password_reset_expires: expires });
+
+    const frontend = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const resetLink = `${frontend.replace(/\/$/, '')}/reset-password?token=${token}&email=${encodeURIComponent(user.email)}`;
+
+    const subject = 'Yêu cầu đặt lại mật khẩu';
+    const html = `<p>Xin chào ${user.username},</p>
+      <p>Chúng tôi nhận được yêu cầu đặt lại mật khẩu. Bạn có thể đặt lại mật khẩu bằng cách nhấp vào liên kết bên dưới (hết hạn sau 1 giờ):</p>
+      <p><a href="${resetLink}">Đặt lại mật khẩu</a></p>
+      <p>Nếu bạn không yêu cầu, hãy bỏ qua email này.</p>`;
+
+    try {
+      await sendMail({ to: user.email, subject, html, text: `Mở liên kết sau để đặt lại mật khẩu: ${resetLink}` });
+    } catch (mailErr) {
+      console.error('Mail send error', mailErr);
+    }
+
+    return res.json({ message: 'Nếu tài khoản tồn tại, bạn sẽ nhận được email hướng dẫn đặt lại mật khẩu' });
+  } catch (error: any) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+// POST /auth/reset-password
+export const resetPassword = async (req: Request, res: Response) => {
+  try {
+    const { email, token, password } = req.body;
+    if (!email || !token || !password) return res.status(400).json({ message: 'Thiếu thông tin' });
+
+    const user = await User.findOne({ where: { email, password_reset_token: token } as any });
+    if (!user) return res.status(400).json({ message: 'Liên kết không hợp lệ hoặc đã hết hạn' });
+
+    // @ts-ignore
+    if (!user.password_reset_expires || new Date(user.password_reset_expires) < new Date()) {
+      return res.status(400).json({ message: 'Liên kết không hợp lệ hoặc đã hết hạn' });
+    }
+
+    const saltRounds = 10;
+    const password_hash = await bcrypt.hash(password, saltRounds);
+
+    // update password, clear reset token and also revoke refresh token
+    // @ts-ignore
+    await user.update({ password_hash, password_reset_token: null, password_reset_expires: null, refresh_token: null });
+
+    return res.json({ message: 'Đặt lại mật khẩu thành công. Vui lòng đăng nhập lại.' });
   } catch (error: any) {
     return res.status(500).json({ message: error.message });
   }
