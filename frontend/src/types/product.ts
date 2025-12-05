@@ -2,18 +2,16 @@ export type Product = {
   product_id: number;
   name: string;
   description?: string | null;
-  price: number; // đơn vị VND
+  price: number; 
   stock_quantity: number;
- image_url?: string | null | undefined;
-
+  image_url?: string | null;
 
   category_id?: number | null;
   brand_id?: number | null;
   created_at?: string;
   updated_at?: string;
   isNew?: boolean;
-  voucherText?: string; // ví dụ: "Voucher 30K"
-  category?: string; // <-- thêm (optional để không vỡ các chỗ cũ)
-  tags?: string[]; // <-- tùy, nếu bạn lọc theo tag
+  voucherText?: string;
+  category?: string;
+  tags?: string[];
 };
-  

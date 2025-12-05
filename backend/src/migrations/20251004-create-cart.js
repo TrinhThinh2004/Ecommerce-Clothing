@@ -17,7 +17,7 @@ module.exports = {
         allowNull: false,
         comment: "Người sở hữu giỏ hàng",
         references: {
-          model: "users", // bảng users phải tồn tại trước
+          model: "users", 
           key: "user_id",
         },
         onUpdate: "CASCADE",
@@ -28,7 +28,7 @@ module.exports = {
         allowNull: false,
         comment: "Sản phẩm trong giỏ",
         references: {
-          model: "products", // bảng products phải tồn tại trước
+          model: "products", 
           key: "product_id",
         },
         onUpdate: "CASCADE",
@@ -63,10 +63,10 @@ module.exports = {
         ),
       },
     }, {
-      engine: 'InnoDB', // quan trọng để hỗ trợ foreign key
+      engine: 'InnoDB', 
     });
 
-    // Thêm index để tối ưu truy vấn
+  
     await queryInterface.addIndex("cart", ["user_id"]);
     await queryInterface.addIndex("cart", ["product_id"]);
   },
