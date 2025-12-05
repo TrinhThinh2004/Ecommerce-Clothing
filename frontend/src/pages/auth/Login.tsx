@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import CanvasPolygons from "./_Components/CanvasPolygons";
 import { SignInUser } from "../../api/auth";
 import { toast } from "react-toastify";
@@ -43,10 +43,10 @@ export default function Login() {
         <section className="relative w-[min(92svw,360px)] md:w-[min(70svw,420px)]">
           <div className="rounded-2xl border border-cyan-500/30 bg-black/40 p-5 md:p-6 backdrop-blur-md shadow-[0_0_28px_rgba(0,255,255,0.22)]">
             <h1 className="mb-1 text-center text-[clamp(1.1rem,3.4vw,1.4rem)] font-semibold text-white/90">
-              Login Store
+              Đăng Nhập
             </h1>
             <p className="mb-4 text-center text-[clamp(.8rem,2.4vw,.9rem)] text-cyan-100/70">
-              Welcome back
+              Chào mừng trở lại
             </p>
 
             <form onSubmit={handleSubmit}>
@@ -68,9 +68,9 @@ export default function Login() {
                 <span className="uline-sweep uline-slim peer-focus:animate-uline"></span>
               </div>
 
-              {/* PASSWORD */}
+             
               <label className="mb-1 block text-[10px] uppercase tracking-widest text-cyan-100/70">
-                Password
+                Mật khẩu
               </label>
               <div className="relative mb-4">
                 <input
@@ -99,21 +99,21 @@ export default function Login() {
                 <span className="uline-sweep uline-slim peer-focus:animate-uline"></span>
               </div>
 
-              {/* REMEMBER ME */}
+          
               <div className="mb-5 flex items-center justify-between text-[clamp(.82rem,2.4vw,.9rem)]">
                 <label className="inline-flex select-none items-center gap-2">
                   <input
                     type="checkbox"
                     className="h-4 w-4 appearance-none rounded-[4px] border border-cyan-400/50 bg-transparent checked:bg-cyan-400 checked:shadow-[0_0_8px_rgba(0,255,255,0.8)]"
                   />
-                  <span className="text-cyan-100/80">Remember me</span>
+                  <span className="text-cyan-100/80">Nhớ tôi</span>
                 </label>
-                <button
-                  type="button"
+                <Link
+                  to="/forgot-password"
                   className="text-cyan-300/80 underline-offset-4 hover:text-cyan-200 hover:underline"
                 >
-                  Forgot Password?
-                </button>
+                  Quên mật khẩu?
+                </Link>
               </div>
 
               {/* SUBMIT */}
@@ -123,16 +123,16 @@ export default function Login() {
                 className="group relative w-full overflow-hidden rounded-xl border border-cyan-400/50 bg-cyan-400/10 px-5 py-2.5 text-[clamp(.9rem,2.6vw,.95rem)] font-medium tracking-wide text-cyan-50 shadow-[0_0_16px_rgba(0,255,255,0.22)] transition-colors hover:bg-cyan-400/20 disabled:opacity-60"
               >
                 <span className="relative z-10">
-                  {loading ? "SIGNING IN..." : "SIGN IN"}
+                  {loading ? "ĐANG ĐĂNG NHẬP..." : "ĐĂNG NHẬP"}
                 </span>
                 <span className="pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 -skew-x-12 bg-white/20 blur-sm transition-transform duration-500 group-hover:translate-x-[250%]" />
               </button>
             </form>
 
             <p className="mt-4 text-center text-[clamp(.82rem,2.4vw,.9rem)] text-cyan-100/70">
-              Don’t have an account?{" "}
+              Chưa có tài khoản?{" "}
               <a className="text-cyan-300 hover:underline" href="/dang-ky">
-                Register
+                Đăng ký ngay
               </a>
             </p>
           </div>
