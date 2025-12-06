@@ -3,26 +3,12 @@ import type { Category } from "../types/categorys.ts";
 
 const BASE_URL = "/api/v1/categorys";
 
-// HÀM MỚI
-export async function fetchCategoryTree(): Promise<Category[]> {
-  try {
-    const res = await axiosInstance.get(`${BASE_URL}/nav-tree`);
-    return Array.isArray(res.data) ? res.data : [];
-  } catch (error) {
-    console.error("Error fetching category tree:", error);
-    return [];
-  }
-}
-
-
-/**
- * Lấy tất cả danh mục (bao gồm sản phẩm)
- */
+// Fetch a flat list of categories from backend
 export async function fetchCategories(): Promise<Category[]> {
   try {
-    const res = await axiosInstance.get(`${BASE_URL}/get-all`);
-    console.log("API categories:", res.data.data);
-    return Array.isArray(res.data.data) ? res.data.data : [];
+    const res = await axiosInstance.get(`${BASE_URL}`);
+    // backend returns an array directly
+    return Array.isArray(res.data) ? res.data : [];
   } catch (error) {
     console.error("Error fetching categories:", error);
     return [];
@@ -35,7 +21,7 @@ export async function fetchCategories(): Promise<Category[]> {
 export async function fetchCategoryById(id: number | string): Promise<Category | null> {
   try {
     const res = await axiosInstance.get(`${BASE_URL}/${id}`);
-    return res.data?.data ?? null;
+    return res.data ?? null;
   } catch (error) {
     console.error(`Error fetching category ${id}:`, error);
     return null;

@@ -28,16 +28,14 @@ export default function CategoryPage() {
 
   // Pagination
   const [page, setPage] = useState(1);
-  const limit = 8;
+  const limit = 12;
 
-  // Filter States
-  const [priceMin, setPriceMin] = useState<string>("");
-  const [priceMax, setPriceMax] = useState<string>("");
+  // (No filters) — only sorting
 
-  // Sort
-  const [sortType, setSortType] = useState<"default" | "asc" | "desc">(
-    "default"
-  );
+  // Sort (match Home.tsx options)
+  const [sortType, setSortType] = useState<
+    "default" | "asc" | "desc" | "az" | "za" | "stock_desc"
+  >("default");
 
   useEffect(() => {
     if (!id) return;
@@ -50,23 +48,18 @@ export default function CategoryPage() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  // FILTER + SORT
+  // Only sort products (no filters)
   const filteredProducts = useMemo(() => {
     if (!category?.products) return [];
 
-    let list = [...category.products];
-
-    // Filter by price
-    const min = priceMin ? Number(priceMin) : 0;
-    const max = priceMax ? Number(priceMax) : Infinity;
-    list = list.filter((p) => p.price >= min && p.price <= max);
-
-    // Sort
+    const list = [...category.products];
     if (sortType === "asc") list.sort((a, b) => a.price - b.price);
     if (sortType === "desc") list.sort((a, b) => b.price - a.price);
-
+    if (sortType === "az") list.sort((a, b) => a.name.localeCompare(b.name));
+    if (sortType === "za") list.sort((a, b) => b.name.localeCompare(a.name));
+    if (sortType === "stock_desc") list.sort((a, b) => (b.stock_quantity ?? 0) - (a.stock_quantity ?? 0));
     return list;
-  }, [category, priceMin, priceMax, sortType]);
+  }, [category, sortType]);
 
   // Pagination
   const paginatedProducts = useMemo(() => {
@@ -80,62 +73,38 @@ export default function CategoryPage() {
   if (!category) return <p className="p-6">Không tìm thấy danh mục.</p>;
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
+    <div className="bg-gradient-to-b from-amber-50 to-amber-100 pb-10 pt-4">
 
-      {/* HEADER */}
-      <h1 className="text-2xl font-bold mb-6">{category.name}</h1>
+      <div className="max-w-6xl mx-auto px-4 mt-6">
+        {/* <h1 className="text-2xl font-bold mb-4">{category.name}</h1> */}
 
-      {/* FILTER BAR (Horizontal) */}
-      <div className="bg-white p-4 rounded-lg shadow mb-6 flex flex-col sm:flex-row items-center gap-4">
+         <div className="bg-[#FFFAE5] p-4  flex items-center justify-between">
+          {/* left: reserved for additional filters (currently commented) */}
+          <div className="flex flex-wrap gap-4 items-end">
+            {/* reserved for future filters */}
+          </div>
 
-        {/* Price Min */}
-        <div className="flex flex-col w-full sm:w-auto">
-          <label className="font-medium text-sm">Giá Min</label>
-          <input
-            type="number"
-            value={priceMin}
-            onChange={(e) => {
-              setPriceMin(e.target.value);
-              setPage(1);
-            }}
-            className="border rounded w-full p-2"
-            placeholder="0"
-          />
+          {/* right: sort control */}
+          <div className="flex items-center gap-2 ml-4">
+            <label className="font-bold text-sm">Sắp xếp: </label>
+            <select
+              value={sortType}
+              onChange={(e) => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                setSortType(e.target.value as any);
+                setPage(1);
+              }}
+              className="border rounded p-2 w-40"
+            >
+              <option value="default">Mặc định</option>
+              <option value="asc">Giá: tăng dần</option>
+              <option value="desc">Giá: giảm dần</option>
+              <option value="az">Tên: A → Z</option>
+              <option value="za">Tên: Z → A</option>
+              <option value="stock_desc">Tồn kho:giảm</option>
+            </select>
+          </div>
         </div>
-
-        {/* Price Max */}
-        <div className="flex flex-col w-full sm:w-auto">
-          <label className="font-medium text-sm">Giá Max</label>
-          <input
-            type="number"
-            value={priceMax}
-            onChange={(e) => {
-              setPriceMax(e.target.value);
-              setPage(1);
-            }}
-            className="border rounded w-full p-2"
-            placeholder="999999"
-          />
-        </div>
-
-        {/* Sort */}
-        <div className="flex flex-col w-full sm:w-auto">
-          <label className="font-medium text-sm">Sắp xếp</label>
-          <select
-            value={sortType}
-            onChange={(e) => {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              setSortType(e.target.value as any);
-              setPage(1);
-            }}
-            className="border p-2 rounded"
-          >
-            <option value="default">Mặc định</option>
-            <option value="asc">Giá thấp → cao</option>
-            <option value="desc">Giá cao → thấp</option>
-          </select>
-        </div>
-
       </div>
 
       {/* PRODUCT GRID */}

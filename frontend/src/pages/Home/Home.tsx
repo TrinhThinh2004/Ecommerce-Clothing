@@ -16,7 +16,9 @@ export default function Home() {
   const [priceMax, setPriceMax] = useState<string>("");
   const [quantity, setQuantity] = useState<string>("");
   const [searchName, setSearchName] = useState<string>("");
-  const [sortType, setSortType] = useState<"default" | "asc" | "desc">("default");
+  const [sortType, setSortType] = useState<
+    "default" | "asc" | "desc" | "az" | "za" | "stock_desc"
+  >("default");
 
   const limit = 12;
 
@@ -57,6 +59,9 @@ export default function Home() {
 
     if (sortType === "asc") list.sort((a, b) => a.price - b.price);
     if (sortType === "desc") list.sort((a, b) => b.price - a.price);
+    if (sortType === "az") list.sort((a, b) => a.name.localeCompare(b.name));
+    if (sortType === "za") list.sort((a, b) => b.name.localeCompare(a.name));
+    if (sortType === "stock_desc") list.sort((a, b) => (b.stock_quantity ?? 0) - (a.stock_quantity ?? 0));
 
     return list;
   }, [products, searchName, quantity, priceMin, priceMax, sortType]);
@@ -91,85 +96,46 @@ export default function Home() {
 
     
       <div className="max-w-6xl mx-auto px-4 mt-6">
-        <div className="bg-white p-4 rounded-lg shadow flex flex-wrap gap-4 items-end">
-          
-          {/* Search */}
-          <div className="flex flex-col">
-            <label className="font-medium text-sm">Tên</label>
-            <input
-              type="text"
-              value={searchName}
-              onChange={(e) => {
-                setSearchName(e.target.value);
-                setPage(1);
-              }}
-              className="border rounded p-2 w-40"
-              placeholder="Tìm sản phẩm..."
-            />
+        <div className="bg-[#FFFAE5]   flex items-center justify-between">
+          {/* left: reserved for additional filters (currently commented) */}
+          <div className="flex flex-wrap gap-4 items-end">
+            {/* Search
+            <div className="flex flex-col">
+              <label className="font-medium text-sm">Tên</label>
+              <input
+                type="text"
+                value={searchName}
+                onChange={(e) => {
+                  setSearchName(e.target.value);
+                  setPage(1);
+                }}
+                className="border rounded p-2 w-40"
+                placeholder="Tìm sản phẩm..."
+              />
+            </div> */}
+
+            {/* other filters are intentionally kept commented out */}
           </div>
 
-          {/* Giá min */}
-          <div className="flex flex-col">
-            <label className="font-medium text-sm">Giá Min</label>
-            <input
-              type="number"
-              value={priceMin}
-              onChange={(e) => {
-                setPriceMin(e.target.value);
-                setPage(1);
-              }}
-              className="border rounded p-2 w-32"
-              placeholder="0"
-            />
-          </div>
-
-          {/* Giá max */}
-          <div className="flex flex-col">
-            <label className="font-medium text-sm">Giá Max</label>
-            <input
-              type="number"
-              value={priceMax}
-              onChange={(e) => {
-                setPriceMax(e.target.value);
-                setPage(1);
-              }}
-              className="border rounded p-2 w-32"
-              placeholder="500000"
-            />
-          </div>
-
-          {/* Số lượng */}
-          <div className="flex flex-col">
-            <label className="font-medium text-sm">Số lượng </label>
-            <input
-              type="number"
-              value={quantity}
-              onChange={(e) => {
-                setQuantity(e.target.value);
-                setPage(1);
-              }}
-              className="border rounded p-2 w-28"
-              placeholder="VD: 5"
-            />
-          </div>
-
-          {/* Sort */}
-          <div className="flex flex-col">
-            <label className="font-medium text-sm">Sắp xếp</label>
-            <select
-              value={sortType}
-              onChange={(e) => {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                setSortType(e.target.value as any);
-                setPage(1);
-              }}
-              className="border rounded p-2 w-40"
-            >
-              <option value="default">Mặc định</option>
-              <option value="asc">Giá thấp → cao</option>
-              <option value="desc">Giá cao → thấp</option>
-            </select>
-          </div>
+          {/* right: sort control */}
+            <div className="flex items-center gap-2 ml-4">
+  <label className="font-bold text-sm">Sắp xếp: </label>
+  <select
+    value={sortType}
+    onChange={(e) => {
+      setSortType(e.target.value as any);
+      setPage(1);
+    }}
+    className="border rounded p-2 w-40"
+  >
+    <option value="default">Mặc định</option>
+    <option value="asc">Giá: tăng dần</option>
+    <option value="desc">Giá: giảm dần</option>
+    <option value="az">Tên: A → Z</option>
+    <option value="za">Tên: Z → A</option>
+    <option value="stock_desc">Tồn kho:giảm</option>
+  </select>
+</div>
 
         </div>
       </div>
@@ -181,7 +147,8 @@ export default function Home() {
         {paginatedProducts.length === 0 ? (
           <p>Không tìm thấy sản phẩm nào.</p>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3">
+         <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-4">
+
             {paginatedProducts.map((p) => (
               <ProductCard key={p.product_id} item={p} />
             ))}
