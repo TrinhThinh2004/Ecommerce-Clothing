@@ -10,7 +10,50 @@ import {
   BadgeCheck,
 } from "lucide-react";
 import { useState } from "react";
+import spay from "../../../src/assets/footer/spay.jpg";
+import cod from "../../../src/assets/footer/cod.jpg";
+import vnpay from "../../../src/assets/footer/vnpay.jpg";
+import thongbao from "../../../src/assets/footer/thongbao.png";
+import dmca from "../../../src/assets/footer/dmca.png";
+function SocialSvg({
+  type,
+  className = "",
+  title = "",
+}: {
+  type: "facebook" | "youtube2" | "instagram" | "zalo";
+  className?: string;
+  title?: string;
+}) {
+  const icons = {
+    facebook: (
+      <path fill="currentColor" d="M512 256C512 114.6 397.4 0 256 0S0 114.6 0 256C0 376 82.7 476.8 194.2 504.5l0-170.3-52.8 0 0-78.2 52.8 0 0-33.7c0-87.1 39.4-127.5 125-127.5 16.2 0 44.2 3.2 55.7 6.4l0 70.8c-6-.6-16.5-1-29.6-1-42 0-58.2 15.9-58.2 57.2l0 27.8 83.6 0-14.4 78.2-69.3 0 0 175.9C413.8 494.8 512 386.9 512 256z"/>
+    ),
 
+    youtube2: (
+      <path fill="currentColor" d="M549.7 124.1C543.5 100.4 524.9 81.8 501.4 75.5 458.9 64 288.1 64 288.1 64S117.3 64 74.7 75.5C51.2 81.8 32.7 100.4 26.4 124.1 15 167 15 256.4 15 256.4s0 89.4 11.4 132.3c6.3 23.6 24.8 41.5 48.3 47.8 42.6 11.5 213.4 11.5 213.4 11.5s170.8 0 213.4-11.5c23.5-6.3 42-24.2 48.3-47.8 11.4-42.9 11.4-132.3 11.4-132.3s0-89.4-11.4-132.3zM232.2 337.6l0-162.4 142.7 81.2-142.7 81.2z"/>
+    ),
+
+    instagram: (
+      <path fill="currentColor" d="M224.3 141a115 115 0 1 0 -.6 230 115 115 0 1 0 .6-230zm-.6 40.4a74.6 74.6 0 1 1 .6 149.2 74.6 74.6 0 1 1 -.6-149.2zm93.4-45.1a26.8 26.8 0 1 1 53.6 0 26.8 26.8 0 1 1 -53.6 0zm129.7 27.2c-1.7-35.9-9.9-67.7-36.2-93.9-26.2-26.2-58-34.4-93.9-36.2-37-2.1-147.9-2.1-184.9 0-35.8 1.7-67.6 9.9-93.9 36.1s-34.4 58-36.2 93.9c-2.1 37-2.1 147.9 0 184.9 1.7 35.9 9.9 67.7 36.2 93.9s58 34.4 93.9 36.2c37 2.1 147.9 2.1 184.9 0 35.9-1.7 67.7-9.9 93.9-36.2 26.2-26.2 34.4-58 36.2-93.9 2.1-37 2.1-147.8 0-184.8zM399 388c-7.8 19.6-22.9 34.7-42.6 42.6-29.5 11.7-99.5 9-132.1 9s-102.7 2.6-132.1-9c-19.6-7.8-34.7-22.9-42.6-42.6-11.7-29.5-9-99.5-9-132.1s-2.6-102.7 9-132.1c7.8-19.6 22.9-34.7 42.6-42.6 29.5-11.7 99.5-9 132.1-9s102.7-2.6 132.1 9c19.6 7.8 34.7 22.9 42.6 42.6 11.7 29.5 9 99.5 9 132.1s2.7 102.7-9 132.1z"/>
+    ),
+
+    zalo: (
+      <path d="M90 20H30C16 20 5 31 5 45v70c0 14 11 25 25 25h60c14 0 25-11 25-25V45c0-14-11-25-25-25zM40 60h40v10H40V60zm0 25h30v10H40V85z"/>
+    ),
+  };
+
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 576 512"
+      className={className}
+      role="img"
+      aria-label={title}
+    >
+      {icons[type]}
+    </svg>
+  );
+}
 const stores = {
   hcm: {
     city: "HỒ CHÍ MINH",
@@ -75,25 +118,34 @@ export default function Footer() {
             </div>
           </form>
 
-          {/* Socials */}
+          {/* Socials (Facebook, YouTube, Instagram) */}
           <div className="flex items-center gap-3">
-            {[
-              { label: "Zalo", bg: "bg-sky-500" },
-              { label: "YouTube", bg: "bg-red-600" },
-              { label: "Instagram", bg: "bg-pink-500" },
-              { label: "Facebook", bg: "bg-blue-600" },
-            ].map((s) => (
-              <a
-                key={s.label}
-                href="#"
-                aria-label={s.label}
-                className={`grid h-9 w-9 place-content-center rounded-md ${s.bg} hover:opacity-90`}
-              >
-                <span className="text-[11px] font-bold leading-none">
-                  {s.label[0]}
-                </span>
-              </a>
-            ))}
+            <a
+              href="#"
+              aria-label="Facebook"
+              className="flex h-9 w-9 items-center justify-center rounded-md hover:opacity-90"
+              style={{ backgroundColor: "#1877F2" }}
+            >
+              <SocialSvg type="facebook" title="Facebook" className="h-5 w-5 text-white" />
+            </a>
+
+            <a
+              href="#"
+              aria-label="YouTube"
+              className="flex h-9 w-9 items-center justify-center rounded-md hover:opacity-90"
+              style={{ backgroundColor: "#FF0000" }}
+            >
+              <SocialSvg type="youtube2" title="YouTube" className="h-5 w-5 text-white" />
+            </a>
+
+            <a
+              href="#"
+              aria-label="Instagram"
+              className="flex h-9 w-9 items-center justify-center rounded-md hover:opacity-90"
+              style={{ background: "linear-gradient(45deg,#F58529,#DD2A7B,#8134AF,#515BD4)" }}
+            >
+              <SocialSvg type="instagram" title="Instagram" className="h-5 w-5 text-white" />
+            </a>
           </div>
         </div>
       </div>
@@ -130,14 +182,10 @@ export default function Footer() {
               </li>
             </ul>
 
-            {/* badges */}
-            <div className="mt-6 flex flex-wrap items-center gap-3">
-              <span className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 text-xs text-white/90">
-                <BadgeCheck className="size-4" /> ĐÃ THÔNG BÁO BỘ CÔNG THƯƠNG
-              </span>
-              <span className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 text-xs text-white/90">
-                <ShieldCheck className="size-4" /> DMCA PROTECTED
-              </span>
+            {/* badges (stacked vertically) */}
+            <div className="mt-6 flex flex-col items-start gap-3">
+              <img src={thongbao} alt="Thông báo Bộ Công Thương" className="w-40 h-20" />
+              <img src={dmca} alt="DMCA Protected" className="w-30 h-9" />
             </div>
           </div>
 
@@ -216,15 +264,9 @@ export default function Footer() {
               PHƯƠNG THỨC THANH TOÁN
             </h4>
             <div className="flex flex-wrap items-center gap-3 text-sm">
-              <span className="rounded-md border border-white/15 px-3 py-1.5">
-                SPay
-              </span>
-              <span className="rounded-md border border-white/15 px-3 py-1.5">
-                VNPAY
-              </span>
-              <span className="rounded-md border border-white/15 px-3 py-1.5">
-                COD
-              </span>
+             <img src={vnpay} alt="VNPAY" className="h-6" />
+              <img src={spay} alt="SPay" className="h-6" />
+              <img src={cod} alt="COD" className="h-6" />
             </div>
           </div>
         </div>
@@ -250,7 +292,7 @@ function CityBlock({
   return (
     <div className="mb-4">
       <div className="mb-2 flex items-center gap-2">
-        <MapPin className="size-4 text-white/70" aria-hidden="true" />
+        <MapPin className="size-5 text-white/70" aria-hidden="true" />
         <p className="text-sm font-semibold">
           {title} {extraRight}
         </p>
