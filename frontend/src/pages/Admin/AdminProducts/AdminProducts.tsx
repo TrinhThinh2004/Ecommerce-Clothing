@@ -8,8 +8,10 @@ import {
   CheckCircle2, XCircle, Eye, EyeOff, ServerCrash, RefreshCw, FileText, UploadCloud
 } from "lucide-react";
 import { formatVnd } from "../../../utils/format";
+import type { Category } from "../../../types/categorys";
 import AdminLayout from "../_Components/AdminLayout";
 import { fetchProducts, createProduct, updateProduct, deleteProduct } from "../../../api/products"; 
+import { fetchCategories } from "../../../api/categorys";
 import { toast } from 'react-toastify';
 
 
@@ -43,6 +45,8 @@ export default function AdminProducts() {
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<"all" | "active" | "inactive">("all");
   const [stockFilter, setStockFilter] = useState<"all" | "inStock" | "out" | "low">("all");
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   const [showForm, setShowForm] = useState(false);
@@ -50,6 +54,17 @@ export default function AdminProducts() {
 
   useEffect(() => {
     loadData();
+    let mounted = true;
+    fetchCategories()
+      .then((list) => {
+        if (!mounted) return;
+        console.log("Loaded categories (AdminProducts):", list);
+        setCategories(list);
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   async function loadData() {
@@ -87,9 +102,17 @@ export default function AdminProducts() {
         (stockFilter === "inStock" && normalizedStock > LOW_STOCK_THRESHOLD) ||
         (stockFilter === "low" && normalizedStock > 0 && normalizedStock <= LOW_STOCK_THRESHOLD) ||
         (stockFilter === "out" && normalizedStock === 0);
-      return okText && okStatus && okStock;
+      const okCategory =
+        categoryFilter === "all" || (p.category_id !== null && p.category_id !== undefined && String(p.category_id) === categoryFilter);
+      return okText && okStatus && okStock && okCategory;
     });
-  }, [items, q, status, stockFilter]);
+  }, [items, q, status, stockFilter, categoryFilter]);
+
+  const categoriesMap = useMemo(() => {
+    const m: Record<number, string> = {};
+    categories.forEach((c) => { if (c && typeof c.category_id === 'number') m[c.category_id] = c.name; });
+    return m;
+  }, [categories]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paged = useMemo(() => {
@@ -97,7 +120,7 @@ export default function AdminProducts() {
     return filtered.slice(start, start + PAGE_SIZE);
   }, [filtered, page]);
 
-  useEffect(() => setPage(1), [q, status, stockFilter]);
+  useEffect(() => setPage(1), [q, status, stockFilter, categoryFilter]);
 
   const allCheckedOnPage = paged.length > 0 && paged.every((p) => checked[p.product_id]);
   const someCheckedOnPage = paged.some((p) => checked[p.product_id]);
@@ -215,12 +238,16 @@ export default function AdminProducts() {
                         <option value="active">Đang bán</option>
                         <option value="inactive">Đã ẩn</option>
                     </select>
-                    <select value={stockFilter} onChange={(e) => setStockFilter(e.target.value as typeof stockFilter)} className="h-10 rounded-lg border border-neutral-300 bg-neutral-50 px-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                      <select value={stockFilter} onChange={(e) => setStockFilter(e.target.value as typeof stockFilter)} className="h-10 rounded-lg border border-neutral-300 bg-neutral-50 px-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
                         <option value="all">Tồn kho: Tất cả</option>
                         <option value="inStock">Còn hàng</option>
                         <option value="low">Sắp hết</option>
                         <option value="out">Hết hàng</option>
                     </select>
+                      <select value={categoryFilter} onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }} className="h-10 rounded-lg border border-neutral-300 bg-neutral-50 px-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                        <option value="all">Tất cả danh mục</option>
+                        {categories.map((c) => (<option key={c.category_id} value={String(c.category_id)}>{c.name}</option>))}
+                      </select>
                     {someCheckedOnPage && (
                         <div className="flex items-center gap-2">
                             <button onClick={handleDelSelected} className="action-btn-danger" title="Xoá các sản phẩm đã chọn"><Trash2 className="h-4 w-4" /></button>
@@ -250,7 +277,7 @@ export default function AdminProducts() {
                                 <img src={p.image_url ? `${API_BASE_URL}${p.image_url}` : 'https://placehold.co/100x100/e2e8f0/adb5bd?text=N/A'} alt={p.name} className="h-12 w-12 flex-shrink-0 rounded-md bg-neutral-100 object-cover" />
                                 <div>
                                 <div className="font-semibold text-neutral-800">{p.name}</div>
-                                <div className="mt-1 text-xs text-neutral-500">Category ID: {p.category_id || 'N/A'}</div>
+                                <div className="mt-1 text-xs text-neutral-500">{categoriesMap[p.category_id ?? -1] ?? (p.category_id ? `Category ID: ${p.category_id}` : 'N/A')}</div>
                                 </div>
                             </div>
                           </td>
@@ -341,13 +368,23 @@ function ProductFormModal({ initial, onClose, onSubmit, }: {
         price: Number(editableFields.price)
       };
     }
-    return { name: "", description: "", image_url: "", price: 0, stock_quantity: 0, active: true };
+    return { name: "", description: "", image_url: "", price: 0, stock_quantity: 0, active: true, category_id: null };
   });
 
 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(initial?.image_url ? `${API_BASE_URL}${initial.image_url}` : null);
 
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  useEffect(() => {
+    let mounted = true;
+    fetchCategories().then((list) => {
+      if (!mounted) return;
+      setCategories(list);
+    }).catch(() => {});
+    return () => { mounted = false; };
+  }, []);
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -373,6 +410,7 @@ function ProductFormModal({ initial, onClose, onSubmit, }: {
       stock_quantity: form.stock_quantity || 0,
       image_url: form.image_url || null,
       active: form.active ?? true,
+      category_id: form.category_id ?? null,
     };
 
     onSubmit(payload, imageFile, initial?.product_id);
@@ -398,6 +436,20 @@ function ProductFormModal({ initial, onClose, onSubmit, }: {
                 rows={5}
                 className="w-full rounded-lg border border-neutral-300 p-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
               />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-neutral-600">Danh mục</label>
+              <select
+                value={form.category_id ?? ""}
+                onChange={(e) => handleChange("category_id", e.target.value ? Number(e.target.value) : null)}
+                className="w-full rounded-lg border border-neutral-300 p-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="">-- Chọn danh mục --</option>
+                {categories.map((c) => (
+                  <option key={c.category_id} value={c.category_id}>{c.name}</option>
+                ))}
+              </select>
             </div>
             <div className="grid grid-cols-2 gap-4">
               

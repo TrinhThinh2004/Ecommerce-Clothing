@@ -67,6 +67,25 @@ export default function Cart() {
     };
   }, []);
 
+  // Prefill shipping info from stored user profile (if available)
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem("user") || "null");
+      if (stored) {
+        // profile fields may vary; prefer full_name then username
+        setName(stored.full_name ?? stored.username ?? "");
+        setPhone(stored.phone_number ?? stored.phone ?? "");
+        setAddress(stored.address ?? "");
+        // if profile contains city/district/ward separate fields, set them
+        if (stored.city) setCity(stored.city);
+        if (stored.district) setDistrict(stored.district);
+        if (stored.ward) setWard(stored.ward);
+      }
+    } catch (err) {
+      // ignore parse errors
+    }
+  }, []);
+
 
   const subTotal = useMemo(
     () => items.reduce((s, it) => s + it.item.price * it.qty, 0),
