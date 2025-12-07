@@ -112,13 +112,13 @@ export const createReview = async (req: Request, res: Response) => {
       });
     }
 
-    // Create review
+    // Create review (auto-approve)
     const newReview = await Review.create({
       product_id,
       user_id: userId,
       rating,
       comment,
-      status: "pending",
+      status: "approved",
     });
 
     const reviewWithUser = await Review.findByPk(newReview.review_id, {
@@ -133,7 +133,7 @@ export const createReview = async (req: Request, res: Response) => {
 
     res.status(201).json({
       success: true,
-      message: "Đã gửi đánh giá. Đang chờ duyệt!",
+      message: "Đã đánh giá thành công!",
       data: reviewWithUser,
     });
   } catch (error: any) {
@@ -209,7 +209,8 @@ export const updateReview = async (req: Request, res: Response) => {
       review.comment = comment;
     }
 
-    review.status = "pending";
+    // Keep edited reviews approved so they appear immediately
+    review.status = "approved";
     await review.save();
 
     const updatedReview = await Review.findByPk(reviewId, {

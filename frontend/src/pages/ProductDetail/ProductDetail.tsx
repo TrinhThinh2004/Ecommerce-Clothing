@@ -235,7 +235,7 @@ export default function ProductDetail() {
           rating,
           comment,
         });
-        toast.success(" Đã gửi đánh giá! Đang chờ duyệt.");
+        toast.success("Đã đánh giá thành công!");
       }
 
       setShowReviewForm(false);
