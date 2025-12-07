@@ -1,6 +1,6 @@
 ﻿# Ecommerce-Clothing
 
-![Project Screenshot](/image.png)
+![Project Screenshot](/public/image.png)
 
 ## Giới thiệu
 
