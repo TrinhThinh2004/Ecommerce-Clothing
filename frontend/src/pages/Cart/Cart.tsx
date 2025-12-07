@@ -510,7 +510,7 @@ export default function Cart() {
             <Card title="Mã giảm giá">
               <div className="flex gap-2">
                 <input
-                  placeholder="Nhập mã giảm giá (VD: SEP30, FREESHIP)"
+                  placeholder="Nhập mã giảm giá "
                   className={`${INPUT_CLS} flex-1`}
                   value={voucher}
                   onChange={(e) => setVoucher(e.target.value)}

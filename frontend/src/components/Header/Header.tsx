@@ -316,7 +316,7 @@ export default function Header() {
                 {detectedCategory && (
                   <div className="p-3 bg-blue-50 border-b border-blue-100">
                     <p className="text-sm text-blue-800">
-                      🔍 Đang tìm trong danh mục: <span className="font-semibold">{getCategoryName(detectedCategory)}</span>
+                      {/* 🔍 Đang tìm trong danh mục: <span className="font-semibold">{getCategoryName(detectedCategory)}</span> */}
                     </p>
                   </div>
                 )}
@@ -336,7 +336,7 @@ export default function Header() {
                             onClick={handleViewAllResults}
                             className="text-sm text-blue-600 hover:text-blue-800 font-medium"
                           >
-                            Xem tất cả sản phẩm trong danh mục {getCategoryName(detectedCategory)} →
+                            Xem tất cả sản phẩm trong danh mục 
                           </button>
                         )}
                       </div>

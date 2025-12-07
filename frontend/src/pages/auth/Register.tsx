@@ -1,5 +1,6 @@
 // src/pages/PolygonsRegister.tsx
 import { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import CanvasPolygons from "./_Components/CanvasPolygons";
 import { SignUpUser } from "../../api/auth";
 import { toast } from "react-toastify";
@@ -11,6 +12,8 @@ export default function PolygonsRegister() {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -120,17 +123,25 @@ export default function PolygonsRegister() {
               </label>
               <div className="relative mb-3.5">
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   autoComplete="new-password"
                   required
                   minLength={6}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="peer input-neon w-full rounded-md bg-transparent px-0 py-2
+                  className="peer input-neon w-full rounded-md bg-transparent px-0 py-2 pr-10
                            text-[clamp(.9rem,2.6vw,.95rem)] text-cyan-50 placeholder:text-cyan-200/30
                            caret-neon text-neon selection:bg-cyan-500/20"
                   placeholder=" "
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((s) => !s)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center justify-center rounded p-1 text-cyan-200 hover:text-cyan-50"
+                  aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
                 <span className="uline-track uline-slim"></span>
                 <span className="uline-sweep uline-slim peer-focus:animate-uline"></span>
               </div>
@@ -141,17 +152,25 @@ export default function PolygonsRegister() {
               </label>
               <div className="relative mb-4">
                 <input
-                  type="password"
+                  type={showConfirm ? "text" : "password"}
                   autoComplete="new-password"
                   required
                   minLength={6}
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
-                  className="peer input-neon w-full rounded-md bg-transparent px-0 py-2
+                  className="peer input-neon w-full rounded-md bg-transparent px-0 py-2 pr-10
                            text-[clamp(.9rem,2.6vw,.95rem)] text-cyan-50 placeholder:text-cyan-200/30
                            caret-neon text-neon selection:bg-cyan-500/20"
                   placeholder=" "
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm((s) => !s)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center justify-center rounded p-1 text-cyan-200 hover:text-cyan-50"
+                  aria-label={showConfirm ? "Ẩn mật khẩu xác nhận" : "Hiện mật khẩu xác nhận"}
+                >
+                  {showConfirm ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
                 <span className="uline-track uline-slim"></span>
                 <span className="uline-sweep uline-slim peer-focus:animate-uline"></span>
               </div>
